@@ -1,0 +1,62 @@
+{% extends "labmanager/base.html" %}
+{% block title %}Technicians{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Technicians</h1>
+        <p class="page-sub">Manage lab technician accounts and access</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Add Technician</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="row">
+            <div>
+                <label style="margin-top:0;">First name</label>
+                {{ form.first_name }}
+            </div>
+            <div>
+                <label style="margin-top:0;">Last name</label>
+                {{ form.last_name }}
+            </div>
+            <div>
+                <label style="margin-top:0;">Username</label>
+                {{ form.username }}
+            </div>
+            <div>
+                <label style="margin-top:0;">Password</label>
+                {{ form.password }}
+            </div>
+        </div>
+        {% for field in form %}
+            {% for error in field.errors %}<p class="form-error">{{ field.label }}: {{ error }}</p>{% endfor %}
+        {% endfor %}
+        <button class="btn" style="margin-top:1.2rem;" type="submit">Add technician</button>
+    </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden;">
+    <table>
+        <thead><tr><th>Name</th><th>Username</th><th>Status</th><th style="text-align:right;"></th></tr></thead>
+        <tbody>
+            {% for tech in technicians %}
+            <tr>
+                <td><strong>{{ tech.get_full_name|default:"—" }}</strong></td>
+                <td>{{ tech.username }}</td>
+                <td><span class="pill {% if tech.is_active %}pill-success{% else %}pill-neutral{% endif %}">{{ tech.is_active|yesno:"Active,Inactive" }}</span></td>
+                <td style="text-align:right;">
+                    <form method="post" action="{% url 'technician_toggle' tech.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button class="btn secondary small" type="submit">{{ tech.is_active|yesno:"Deactivate,Activate" }}</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="muted" style="text-align:center;padding:2rem;">No technicians yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

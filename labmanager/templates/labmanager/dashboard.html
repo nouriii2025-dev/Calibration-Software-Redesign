@@ -1,0 +1,146 @@
+{% extends "labmanager/base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="dash-page">
+
+    <div class="dash-header">
+        <div>
+            <h1>{% if user.is_lab_head %}All Jobs{% else %}My Assigned Jobs{% endif %}</h1>
+            <p class="dash-sub">
+                {% if user.is_lab_head %}
+                    Overview of every calibration job in the system
+                {% else %}
+                    Jobs with instruments currently assigned to you
+                {% endif %}
+            </p>
+        </div>
+        {% if user.is_lab_head %}
+            <a class="dash-btn dash-btn-primary" href="{% url 'job_create' %}">
+                <span class="dash-btn-icon">+</span> New Job
+            </a>
+        {% endif %}
+    </div>
+
+    <div class="dash-stats">
+        <div class="dash-stat">
+            <span class="dash-stat-value">{{ total_jobs }}</span>
+            <span class="dash-stat-label">Total Jobs</span>
+        </div>
+        <div class="dash-stat">
+            <span class="dash-stat-value dash-stat-complete">{{ complete_count }}</span>
+            <span class="dash-stat-label">Fully Assigned</span>
+        </div>
+        <div class="dash-stat">
+            <span class="dash-stat-value dash-stat-partial">{{ partial_count }}</span>
+            <span class="dash-stat-label">Partially Assigned</span>
+        </div>
+        <div class="dash-stat">
+            <span class="dash-stat-value dash-stat-unassigned">{{ unassigned_count }}</span>
+            <span class="dash-stat-label">Unassigned</span>
+        </div>
+    </div>
+
+    <form method="get" class="dash-toolbar">
+        <div class="dash-search">
+            <svg class="dash-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/>
+                <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <input
+                type="text"
+                name="q"
+                value="{{ search_query }}"
+                placeholder="Search by job number, customer or PO number…"
+                autocomplete="off"
+            >
+        </div>
+
+        <div class="dash-filter-group">
+            <label class="dash-filter-label" for="dash-status">Status</label>
+            <select id="dash-status" name="status">
+                <option value="" {% if not status_filter %}selected{% endif %}>All statuses</option>
+                <option value="complete" {% if status_filter == "complete" %}selected{% endif %}>Fully assigned</option>
+                <option value="partial" {% if status_filter == "partial" %}selected{% endif %}>Partially assigned</option>
+                <option value="unassigned" {% if status_filter == "unassigned" %}selected{% endif %}>Unassigned</option>
+            </select>
+        </div>
+
+        <div class="dash-filter-group">
+            <label class="dash-filter-label" for="dash-date-from">From</label>
+            <input type="date" id="dash-date-from" name="date_from" value="{{ date_from }}">
+        </div>
+
+        <div class="dash-filter-group">
+            <label class="dash-filter-label" for="dash-date-to">To</label>
+            <input type="date" id="dash-date-to" name="date_to" value="{{ date_to }}">
+        </div>
+
+        <div class="dash-filter-actions">
+            <button type="submit" class="dash-btn dash-btn-primary dash-btn-small">Apply</button>
+            {% if search_query or status_filter or date_from or date_to %}
+                <a href="{% url 'dashboard' %}" class="dash-btn dash-btn-ghost dash-btn-small">Clear</a>
+            {% endif %}
+        </div>
+    </form>
+
+    <div class="dash-card">
+        <div class="dash-table-wrap">
+            <table class="dash-table">
+                <thead>
+                    <tr>
+                        <th>Job Number</th>
+                        <th>Customer</th>
+                        <th>PO Number</th>
+                        <th>Certificates</th>
+                        <th>Committed Date</th>
+                        <th>Status</th>
+                        <th class="dash-col-action"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in jobs %}
+                    <tr>
+                        <td data-label="Job Number"><span class="dash-job-number">{{ job.job_number }}</span></td>
+                        <td data-label="Customer">{{ job.customer_name }}</td>
+                        <td data-label="PO Number">{{ job.po_number }}</td>
+                        <td data-label="Certificates">
+                            <div class="dash-progress">
+                                <div class="dash-progress-bar">
+                                    <div class="dash-progress-fill dash-progress-fill-{{ job.assignment_status }}"
+                                         style="width: {{ job.assignment_percent }}%;"></div>
+                                </div>
+                                <span class="dash-progress-text">{{ job.certificates_assigned_count }}/{{ job.quantity }}</span>
+                            </div>
+                        </td>
+                        <td data-label="Committed Date">{{ job.committed_date|default:"—" }}</td>
+                        <td data-label="Status">
+                            {% if job.assignment_status == "complete" %}
+                                <span class="dash-badge dash-badge-complete">Fully assigned</span>
+                            {% elif job.assignment_status == "partial" %}
+                                <span class="dash-badge dash-badge-partial">Partially assigned</span>
+                            {% else %}
+                                <span class="dash-badge dash-badge-unassigned">Unassigned</span>
+                            {% endif %}
+                        </td>
+                        <td data-label="" class="dash-col-action">
+                            <a class="dash-btn dash-btn-ghost dash-btn-small" href="{% url 'job_detail' job.pk %}">View</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7">
+                            <div class="dash-empty">
+                                <p>No jobs match your filters.</p>
+                                {% if search_query or status_filter or date_from or date_to %}
+                                    <a href="{% url 'dashboard' %}" class="dash-btn dash-btn-ghost dash-btn-small">Clear filters</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

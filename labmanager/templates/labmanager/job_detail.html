@@ -1,0 +1,113 @@
+{% extends "labmanager/base.html" %}
+{% load static %}
+{% block title %}Job {{ job.job_number }}{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb"><a href="{% url 'dashboard' %}">Dashboard</a> / Job {{ job.job_number }}</div>
+        <h1>Job {{ job.job_number }}</h1>
+        <p class="page-sub">{{ job.customer_name }}</p>
+    </div>
+    <a class="btn secondary" href="{% url 'dashboard' %}">&larr; Back to jobs</a>
+</div>
+
+<div class="card">
+    <div class="info-grid">
+        <div class="info-item">
+            <p class="info-label">Customer</p>
+            <p class="info-value">{{ job.customer_name }}</p>
+        </div>
+        <div class="info-item">
+            <p class="info-label">PO Number</p>
+            <p class="info-value">{{ job.po_number }}</p>
+        </div>
+        <div class="info-item">
+            <p class="info-label">Committed Date</p>
+            <p class="info-value">{{ job.committed_date|default:"—" }}</p>
+        </div>
+        <div class="info-item">
+            <p class="info-label">Certificates</p>
+            <p class="info-value"><span class="pill {% if job.certificates_assigned_count >= job.quantity %}pill-success{% elif job.certificates_assigned_count > 0 %}pill-warning{% else %}pill-danger{% endif %}">{{ job.certificates_assigned_count }}/{{ job.quantity }} assigned</span></p>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Instruments</h2>
+    <div class="table-scroll">
+    <table class="line-items-table" id="line-items-table">
+        <thead>
+            <tr>
+                <th>Instrument</th><th>Model</th><th>Range</th><th>Unit</th><th>Quantity</th><th>Certificates</th><th>Assigned To</th>
+                <th>Calibration Points</th><th>Calibration Validity</th><th>Reference Procedure</th>
+
+            </tr>
+        </thead>
+        <tbody>
+            {% for li in job.line_items.all %}
+            <tr>
+                <td>{{ li.instrument }}</td>
+                <td>{{ li.model|default:"—" }}</td>
+                <td>
+                    {% if li.range_from is not None and li.range_to is not None %}
+                        {{ li.range_from|floatformat:"-4" }} to {{ li.range_to|floatformat:"-4" }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>{{ li.unit }}</td>
+                <td>{{ li.quantity }}</td>
+                <td>{{ li.certificate_range }}</td>
+                <td>{{ li.assigned_to }}</td>
+                <td>{{ li.calibration_points }}</td>
+                <td>{{ li.calibration_validity }}</td>
+                <td>{{ li.reference_procedure|default:"—" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="10" class="muted">No instruments added yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Certificates</h2>
+    <table>
+        <thead>
+            <tr><th>Number</th><th>Instrument</th><th>Assigned To</th><th>Status</th><th></th></tr>
+        </thead>
+        <tbody>
+            {% for cert in job.certificates.all %}
+            <tr>
+                <td>{{ cert.number }}</td>
+                <td>{{ cert.line_item.instrument|default:"—" }}</td>
+                <td>{{ cert.line_item.assigned_to|default:"—" }}</td>
+                <td><span class="pill {% if cert.is_complete %}pill-success{% else %}pill-warning{% endif %}">{{ cert.is_complete|yesno:"Complete,Pending" }}</span></td>
+                <td style="text-align:right;"><a class="btn secondary small" href="{% url 'certificate_detail' cert.pk %}">Open</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="muted">No certificates yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h2>Documents</h2>
+    <table>
+        <thead><tr><th>Name</th><th>File</th><th>Uploaded</th></tr></thead>
+        <tbody>
+            {% for doc in job.documents.all %}
+            <tr>
+                <td>{{ doc.name }}</td>
+                <td><a class="btn secondary small" href="{{ doc.file.url }}">Download</a></td>
+                <td>{{ doc.uploaded_at }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="muted">No documents uploaded.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "labmanager/base.html" %}
+{% block title %}Sign up{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+    <div class="card auth-card" style="max-width:460px;">
+        <span class="brand-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 3h6M10 3v6.5L4.6 18.6A2 2 0 0 0 6.3 21.5h11.4a2 2 0 0 0 1.7-2.9L14 9.5V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <h2>Create account</h2>
+        <p class="auth-sub">Set up your access to the lab system.</p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="row">
+                <div>
+                    <label>First name</label>
+                    {{ form.first_name }}
+                </div>
+                <div>
+                    <label>Last name</label>
+                    {{ form.last_name }}
+                </div>
+            </div>
+            <label>Username</label>
+            {{ form.username }}
+            <label>Role</label>
+            {{ form.role }}
+            <label>Password</label>
+            {{ form.password1 }}
+            <label>Confirm password</label>
+            {{ form.password2 }}
+            {% for field in form %}
+                {% for error in field.errors %}
+                    <p class="form-error">{{ field.label }}: {{ error }}</p>
+                {% endfor %}
+            {% endfor %}
+            <button class="btn" type="submit">Sign up</button>
+        </form>
+        <p class="auth-foot">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+    </div>
+</div>
+{% endblock %}

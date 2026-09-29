@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+
+    <title>
+        Certificate {{ certificate.number }}
+    </title>
+
+    <style>
+        @page {
+            size: A4;
+            margin: 12mm;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 11px;
+            color: #000;
+            background: #fff;
+        }
+
+        .certificate {
+            width: 100%;
+        }
+
+        .header {
+            border: 1px solid #000;
+            display: grid;
+            grid-template-columns: 24% 52% 24%;
+            min-height: 95px;
+        }
+
+        .header > div {
+            border-right: 1px solid #000;
+            padding: 8px;
+        }
+
+        .header > div:last-child {
+            border-right: none;
+        }
+
+        .logo-box {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .certificate-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 15px;
+            padding: 8px;
+        }
+
+        .certificate-meta {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+
+        .certificate-meta td {
+            border: 1px solid #000;
+            padding: 4px;
+        }
+
+        .section-title {
+            margin-top: 8px;
+            border: 1px solid #000;
+            background: #eee;
+            padding: 4px 6px;
+            font-weight: bold;
+        }
+
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .details-table td {
+            border: 1px solid #000;
+            padding: 5px;
+            vertical-align: top;
+        }
+
+        .label {
+            font-weight: bold;
+            width: 18%;
+        }
+
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 5px;
+        }
+
+        .results-table th,
+        .results-table td {
+            border: 1px solid #000;
+            padding: 5px 4px;
+            text-align: center;
+        }
+
+        .results-table th {
+            font-weight: bold;
+        }
+
+        .notes {
+            margin-top: 7px;
+            font-size: 9px;
+        }
+
+        .remarks {
+            margin-top: 7px;
+        }
+
+        .signature-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        .signature-table td {
+            width: 50%;
+            padding: 8px;
+            vertical-align: bottom;
+        }
+
+        .no-print {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .print-button {
+            padding: 8px 18px;
+            cursor: pointer;
+        }
+
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background: #fff;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="no-print">
+    <button
+        type="button"
+        class="print-button"
+        onclick="window.print()"
+    >
+        Print Certificate
+    </button>
+</div>
+
+<div class="certificate">
+
+    <!-- HEADER -->
+    <div class="header">
+
+        <div class="logo-box">
+            ACCUTECH
+        </div>
+
+        <div>
+            <div class="certificate-title">
+                CERTIFICATE OF CALIBRATION
+            </div>
+
+            <table class="certificate-meta">
+                <tr>
+                    <td><strong>Certificate No.</strong></td>
+                    <td>{{ certificate.number }}</td>
+                </tr>
+
+                <tr>
+                    <td><strong>Date of Issue</strong></td>
+                    <td>
+                        {% if certificate.issue_date %}
+                            {{ certificate.issue_date|date:"d-M-Y" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td><strong>Date of Calibration</strong></td>
+                    <td>
+                        {% if certificate.calibration_date %}
+                            {{ certificate.calibration_date|date:"d-M-Y" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td><strong>Date of Re-Calibration</strong></td>
+                    <td>
+                        {% if certificate.re_calibration_date %}
+                            {{ certificate.re_calibration_date|date:"d-M-Y" }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <tr>
+                    <td><strong>Approved Signatory</strong></td>
+                    <td>{{ certificate.approved_signatory|default:"—" }}</td>
+                </tr>
+            </table>
+        </div>
+
+        <div class="logo-box">
+            CALIBRATION
+        </div>
+
+    </div>
+
+
+    <!-- CUSTOMER DETAILS -->
+
+    <div class="section-title">
+        Customer Details
+    </div>
+
+    <table class="details-table">
+        <tr>
+            <td class="label">Customer Name</td>
+            <td>
+                {{ certificate.job.customer_name }}
+            </td>
+
+            <td class="label">PO No.</td>
+            <td>
+                {{ certificate.job.po_number }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="label">Address</td>
+            <td colspan="3">
+                {{ certificate.job.customer_address }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="label">Job No.</td>
+            <td colspan="3">
+                {{ certificate.job.job_number }}
+            </td>
+        </tr>
+    </table>
+
+
+    <!-- DEVICE UNDER CALIBRATION -->
+
+    <div class="section-title">
+        Specification of the Device Under Calibration
+    </div>
+
+    <table class="details-table">
+        <tr>
+            <td class="label">Instrument</td>
+            <td>
+                {{ certificate.line_item.instrument|default:"—" }}
+            </td>
+
+            <td class="label">Manufacturer</td>
+            <td>
+                {{ certificate.device_manufacturer }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="label">Model</td>
+            <td>
+                {{ certificate.line_item.model|default:"—" }}
+            </td>
+
+            <td class="label">Serial Number</td>
+            <td>
+                {{ certificate.device_serial }}
+            </td>
+        </tr>
+
+        <tr>
+           <!-- <td class="label">Range</td>
+            <td>
+                {% if certificate.line_item %}
+                    {{ certificate.line_item.range_from }} - {{ certificate.line_item.range_to }}
+                    {{ certificate.line_item.unit }}
+                {% else %}
+                    —
+                {% endif %}
+            </td> -->
+            <td class="label">Tag Number</td>
+            <td>
+                {{ certificate.device_tag_number }}
+            </td>
+
+            <td class="label">Resolution</td>
+            <td>
+                {{ certificate.device_resolution }}
+            </td>
+        </tr>
+
+        <tr>
+            <!-- <td class="label">Accuracy</td>
+            <td>
+                {{ certificate.device_accuracy }}
+            </td> -->
+            <td class="label">Range</td>
+            <td>
+                {% if certificate.line_item %}
+                    {{ certificate.line_item.range_from }} - {{ certificate.line_item.range_to }}
+                    {{ certificate.line_item.unit }}
+                {% else %}
+                    —
+                {% endif %}
+            </td>
+            <td class="label">Accuracy</td>
+            <td>
+                {{ certificate.device_accuracy }}
+            </td>
+        </tr>
+        <tr>
+            <td class="label">Ratio</td>
+            <td>
+                {{ certificate.device_ratio }}
+            </td>
+        </tr>
+    </table>
+
+
+    <!-- WORKING STANDARD -->
+
+    <div class="section-title">
+        Working Standard (WS)
+    </div>
+
+    <table class="details-table">
+        <tr>
+            <td class="label">Name</td>
+            <td>
+                {{ certificate.working_standard_name }}
+            </td>
+
+            <td class="label">Serial Number</td>
+            <td>
+                {{ certificate.working_standard_serial }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="label">Certificate No.</td>
+            <td colspan="3">
+                {{ certificate.working_standard_certificate_no }}
+            </td>
+        </tr>
+    </table>
+
+
+    <!-- CALIBRATION CONDITIONS -->
+
+    <div class="section-title">
+        Calibration Conditions
+    </div>
+
+    <table class="details-table">
+        <tr>
+            <td class="label">Lab Temperature</td>
+            <td>
+                {{ certificate.lab_temperature }}
+            </td>
+
+            <td class="label">Lab Humidity</td>
+            <td>
+                {{ certificate.lab_humidity }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="label">Ambient Pressure</td>
+            <td>
+                {{ certificate.ambient_pressure }}
+            </td>
+
+            <td class="label">Reference Procedure</td>
+            <td>
+                {{ certificate.reference_procedure }}
+            </td>
+        </tr>
+
+        <tr>
+            <td class="label">Temperature Variation</td>
+            <td colspan="3">
+                {{ certificate.temperature_variation }}
+            </td>
+        </tr>
+    </table>
+
+
+    <!-- RESULTS -->
+
+    <div class="section-title">
+        Calibration Results
+    </div>
+
+    <table class="results-table">
+
+        <thead>
+            <tr>
+                <th>
+                    Applied Pressure (A)<br>
+                    bar
+                </th>
+
+                <th>
+                    Upward<br>
+                    (M1)
+                </th>
+
+                <th>
+                    Downward<br>
+                    (M2)
+                </th>
+
+                <th>
+                    Mean Value<br>
+                    (M)
+                </th>
+
+                <th>
+                    Deviation<br>
+                    (A-M)
+                </th>
+
+                <th>
+                    Expanded Uncertainty<br>
+                    (% FS)
+                </th>
+
+                <th>
+                    Remarks<br>
+                    Pass / Fail
+                </th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            {% for result in results %}
+            <tr>
+                <td>{{ result.applied_value }}</td>
+                <td>{{ result.upward_reading }}</td>
+                <td>{{ result.downward_reading }}</td>
+                <td>{{ result.mean_value }}</td>
+                <td>{{ result.deviation }}</td>
+                <td>{{ result.uncertainty }}</td>
+                <td>{{ result.remarks }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7">
+                    No calibration results entered.
+                </td>
+            </tr>
+            {% endfor %}
+
+        </tbody>
+
+    </table>
+
+
+    <!-- CONDITIONS / NOTES -->
+
+    {% if certificate.condition_notes %}
+    <div class="remarks">
+        <strong>Remarks:</strong>
+        {{ certificate.condition_notes }}
+    </div>
+    {% endif %}
+
+
+    <!-- SIGNATURE -->
+
+    <table class="signature-table">
+        <tr>
+            <td>
+                <strong>Calibrated By:</strong><br><br>
+                {{ certificate.calibrated_by }}
+            </td>
+
+            <td>
+                <strong>Approved Signatory:</strong><br><br>
+                {{ certificate.approved_signatory }}
+            </td>
+        </tr>
+    </table>
+
+</div>
+
+<script>
+    window.addEventListener("load", function () {
+        window.print();
+    });
+</script>
+
+</body>
+</html>

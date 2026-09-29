@@ -1,0 +1,49 @@
+{% extends "labmanager/base.html" %}
+{% block title %}Instruments{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Instruments</h1>
+        <p class="page-sub">Master list used in the job form's instrument dropdown</p>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Add Instrument</h2>
+    <form method="post">
+        {% csrf_token %}
+        <div class="row" style="align-items:flex-end;">
+            <div style="flex:1 1 320px;">
+                <label style="margin-top:0;">Name</label>
+                {{ form.name }}
+            </div>
+            <div style="flex:0 0 auto;">
+                <button class="btn" type="submit">Add instrument</button>
+            </div>
+        </div>
+        {% for error in form.name.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+    </form>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden;">
+    <table>
+        <thead><tr><th>Name</th><th>Status</th><th style="text-align:right;"></th></tr></thead>
+        <tbody>
+            {% for instrument in instruments %}
+            <tr>
+                <td><strong>{{ instrument.name }}</strong></td>
+                <td><span class="pill {% if instrument.is_active %}pill-success{% else %}pill-neutral{% endif %}">{{ instrument.is_active|yesno:"Active,Inactive" }}</span></td>
+                <td style="text-align:right;">
+                    <form method="post" action="{% url 'instrument_toggle' instrument.pk %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button class="btn secondary small" type="submit">{{ instrument.is_active|yesno:"Deactivate,Activate" }}</button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="muted" style="text-align:center;padding:2rem;">No instruments yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

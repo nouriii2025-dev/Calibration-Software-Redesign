@@ -1,0 +1,727 @@
+{% extends "labmanager/base.html" %}
+{% load static %}
+{% block title %}Uncertainty Calculation{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="breadcrumb"><a href="{% url 'dashboard' %}">Dashboard</a> / Uncertainty Calculation</div>
+        <h1>Uncertainty Calculation</h1>
+        <p class="page-sub">Enter reference and readings to compute the expanded uncertainty</p>
+    </div>
+</div>
+
+<div id="uncertainty-page">
+    <div class="card">
+    <h2>Instrument Setup</h2>
+
+    <div class="row">
+        <div>
+            <label>Resolution</label>
+            <div class="readonly-value">
+                {{ certificate.device_resolution|default:"—" }}
+            </div>
+        </div>
+
+        <div>
+            <label>Ratio</label>
+            <div class="readonly-value">
+                {{ certificate.device_ratio|default:"—" }}
+            </div>
+        </div>
+
+        <div>
+            <label>Assumed Resolution</label>
+            <div class="readonly-value">
+                {{ assumed_resolution|default:"—" }}
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div>
+            <label>Reference Instrument Range</label>
+            <div class="readonly-value">
+                {% if certificate.reference_instrument_range %}
+                    {{ certificate.reference_instrument_range }} {{ certificate.uuc_unit }}
+                {% else %}
+                    —
+                {% endif %}
+            </div>
+        </div>
+        <div>
+            <label>UUC Full Scale</label>
+            <div class="readonly-value">
+                {% if certificate.uuc_full_scale %}
+                    {{ certificate.uuc_full_scale }} {{ certificate.uuc_unit }}
+                {% else %}
+                    —
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- <div>
+            <label>UUC Unit</label>
+            <div class="readonly-value">
+                {{ certificate.uuc_unit|default:"—" }}
+            </div>
+        </div> -->
+    </div>
+
+    <div class="row">
+        <div>
+            <label>Pressure Media</label>
+            <div class="readonly-value">
+                {{ certificate.pressure_media|default:"—" }}
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<form
+    method="post"
+    action="{% url 'save_uncertainty' certificate.pk %}"
+    id="uncertainty-form"
+>
+    {% csrf_token %}
+    <div class="card">
+        <h2>Uncertainty Results</h2>
+        <p class="muted">Enter the applied pressure and readings for each point. Mean, deviation, hysteresis and uncertainty values are calculated automatically.</p>
+        <div class="table-scroll">
+        <table class="line-items-table" id="calc-table">
+            <thead>
+                <tr>
+                    <th>Applied Pressure</th>
+                    <th>M1</th>
+                    <th>M2</th>
+                    <th>Mean Value</th>
+                    <th>Deviation</th>
+                    <th>Repeatability</th>
+                    <th>Hysteresis (M2 − M1)</th>
+                    <th>Std. Un. for Hysteresis</th>
+                    <th>Un. due to Resolution</th>
+                    <th>Std. Un. for Press Tx</th>
+                    <th>Combined Std. Uncertainty</th>
+                    <th>Expanded Uncertainty</th>
+                    <th>Expanded Un. (% of FSD)</th>
+                    <th>Accutech CMC (% of FSD)</th>
+                    <th>Max Expanded Un. (% of FSD)</th>
+                </tr>
+            </thead>
+            <tbody id="calc-body">
+            {% for result in results %}
+            <tr class="line-item-row">
+
+                <td data-f="applied">
+                    {{ result.applied_value|default:"—" }}
+                </td>
+
+                <td data-f="m1">
+                    {{ result.upward_reading|default:"—" }}
+                </td>
+
+                <td data-f="m2">
+                    {{ result.downward_reading|default:"—" }}
+                </td>
+
+                <td data-f="mean">
+                    {{ result.mean_value|default:"—" }}
+                </td>
+
+                <td data-f="dev">
+                    {{ result.deviation|default:"—" }}
+                </td>
+
+                <td class="calc-cell" data-o="rep">—</td>
+
+                <td class="calc-cell" data-o="hyst">—</td>
+
+                <td class="calc-cell" data-o="uhyst">—</td>
+
+                <td class="calc-cell" data-o="ures">—</td>
+
+                <td class="calc-cell" data-o="ptx">—</td>
+
+                <td class="calc-cell strong" data-o="comb">—</td>
+
+                <td class="calc-cell strong" data-o="exp">—</td>
+
+                <td class="calc-cell strong" data-o="pct">—</td>
+
+                <td class="calc-cell" data-o="cmc">—</td>
+
+                <td class="calc-cell strong" data-o="max">—</td>
+
+                <td>
+                    <!-- No editing/removing on calculation page -->
+                </td>
+
+            </tr>
+            {% endfor %}
+        </tbody>
+        </table>
+        </div>
+         <button
+            type="submit"
+            class="btn"
+            id="save-uncertainty"
+        >
+            Save Expanded Uncertainty
+        </button>
+    </div>
+    </form>
+
+</div>
+
+<style>
+    /* Only what the existing stylesheet doesn't already cover */
+    #calc-table .calc-cell {
+        background: var(--bg);
+        text-align: right;
+        white-space: nowrap;
+        font-variant-numeric: tabular-nums;
+    }
+    #calc-table .calc-cell.strong { font-weight: 600; }
+    #calc-table input { min-width: 90px; }
+    @media print {
+        .btn, .remove-row, #add-point { display: none !important; }
+    }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    // =========================================================
+    // BASIC HELPERS
+    // =========================================================
+
+    function toNumber(value) {
+        if (value === null || value === undefined) {
+            return NaN;
+        }
+
+        const text = String(value).trim();
+
+        if (text === "" || text === "—") {
+            return NaN;
+        }
+
+        const number = Number(text);
+
+        return Number.isFinite(number) ? number : NaN;
+    }
+
+
+    function format(value, decimals = 4) {
+        if (!Number.isFinite(value)) {
+            return "—";
+        }
+
+        return value.toFixed(decimals);
+    }
+
+
+    function formatCMC(value) {
+        if (!Number.isFinite(value)) {
+            return "—";
+        }
+
+        return value.toFixed(3) + "%";
+    }
+
+
+    // =========================================================
+    // CERTIFICATE VALUES
+    // =========================================================
+
+    const resolutionText =
+        "{{ certificate.device_resolution|default:''|escapejs }}";
+
+    const ratioText =
+        "{{ certificate.device_ratio|default:''|escapejs }}";
+
+    const referenceRangeText =
+        "{{ certificate.reference_instrument_range|default:''|escapejs }}";
+
+    const fullScaleText =
+        "{{ certificate.uuc_full_scale|default:''|escapejs }}";
+
+    const unitText =
+        "{{ certificate.uuc_unit|default:'bar'|escapejs }}";
+
+    const mediaText =
+        "{{ certificate.pressure_media|default:''|escapejs }}";
+
+
+    const resolution = toNumber(resolutionText);
+    const ratio = toNumber(ratioText);
+    const referenceRange = toNumber(referenceRangeText);
+    const fullScale = toNumber(fullScaleText);
+
+    const unit = unitText;
+    const media = mediaText;
+
+
+    // =========================================================
+    // ASSUMED RESOLUTION
+    //
+    // Assumed Resolution = Resolution × Ratio
+    // =========================================================
+
+    let assumedResolution = NaN;
+
+    if (
+        Number.isFinite(resolution) &&
+        Number.isFinite(ratio)
+    ) {
+        assumedResolution = resolution * ratio;
+    }
+
+
+    // =========================================================
+    // UNIT CONVERSION
+    // =========================================================
+
+    function convertToBar(value, unit) {
+
+        if (!Number.isFinite(value)) {
+            return NaN;
+        }
+
+        const key = String(unit || "bar")
+            .trim()
+            .toLowerCase();
+
+        const conversions = {
+            "bar": 1,
+            "psi": 1 / 14.5038,
+            "kpa": 1 / 100,
+            "mpa": 10,
+            "kg/cm2": 1 / 1.01972,
+            "kgf/cm²": 1 / 1.01972
+        };
+
+        const factor = conversions[key];
+
+        if (!Number.isFinite(factor)) {
+            return NaN;
+        }
+
+        return value * factor;
+    }
+
+
+    // =========================================================
+    // CMC TABLE
+    //
+    // CMC is selected based on APPLIED PRESSURE.
+    // Applied pressure is first converted to bar.
+    // =========================================================
+
+    function getCMC(appliedPressure, unit, pressureMedia) {
+
+        const appliedPressureBar = convertToBar(
+            appliedPressure,
+            unit
+        );
+
+        if (!Number.isFinite(appliedPressureBar)) {
+            return NaN;
+        }
+
+        const mediaName = String(pressureMedia || "")
+            .trim()
+            .toLowerCase();
+
+
+        // -----------------------------------------------------
+        // PNEUMATIC
+        // -----------------------------------------------------
+
+        if (mediaName === "pneumatic") {
+
+            if (
+                appliedPressureBar >= -0.95 &&
+                appliedPressureBar < 0
+            ) {
+                return 0.10;
+            }
+
+            // 0 to 30 bar
+            if (
+                appliedPressureBar >= 0 &&
+                appliedPressureBar <= 30
+            ) {
+                return 0.080;
+            }
+
+            // 30 to 100 bar
+            if (
+                appliedPressureBar > 30 &&
+                appliedPressureBar <= 100
+            ) {
+                return 0.020;
+            }
+        }
+
+
+        // -----------------------------------------------------
+        // HYDRAULIC
+        // -----------------------------------------------------
+
+        if (mediaName === "hydraulic") {
+
+            // 0 to 0.6 bar
+            if (
+                appliedPressureBar >= 0 &&
+                appliedPressureBar <= 0.6
+            ) {
+                return 0.080;
+            }
+
+            // 0.6 to 6 bar
+            // No CMC supplied for this range.
+
+            // 6 to 60 bar
+            if (
+                appliedPressureBar > 6 &&
+                appliedPressureBar <= 60
+            ) {
+                return 0.020;
+            }
+
+            // 60 to 1000 bar
+            if (
+                appliedPressureBar > 60 &&
+                appliedPressureBar <= 1000
+            ) {
+                return 0.025;
+            }
+        }
+
+        return NaN;
+    }
+
+
+    // =========================================================
+    // PROCESS EACH RESULT ROW
+    // =========================================================
+
+    document.querySelectorAll("#calc-body tr").forEach(function (row) {
+
+        const m1Cell =
+            row.querySelector('[data-f="m1"]');
+
+        const m2Cell =
+            row.querySelector('[data-f="m2"]');
+
+        const appliedCell =
+            row.querySelector('[data-f="applied"]');
+
+
+        const m1 = toNumber(m1Cell?.textContent);
+        const m2 = toNumber(m2Cell?.textContent);
+        const applied = toNumber(appliedCell?.textContent);
+
+
+        // =====================================================
+        // CMC
+        //
+        // IMPORTANT:
+        // CMC is selected using APPLIED PRESSURE.
+        // =====================================================
+
+        const cmc = getCMC(
+            applied,
+            unit,
+            media
+        );
+
+
+        // =====================================================
+        // REPEATABILITY
+        //
+        // Standard deviation of M1 and M2.
+        //
+        // For two values:
+        //
+        // mean = (M1 + M2) / 2
+        //
+        // sample variance =
+        // ((M1-mean)^2 + (M2-mean)^2) / (2-1)
+        //
+        // repeatability = sqrt(variance)
+        // =====================================================
+
+        let repeatability = NaN;
+
+        if (
+            Number.isFinite(m1) &&
+            Number.isFinite(m2)
+        ) {
+
+            const values = [m1, m2];
+
+            const mean =
+                values.reduce(
+                    (sum, value) => sum + value,
+                    0
+                ) / values.length;
+
+
+            const variance =
+                values.reduce(
+                    (sum, value) =>
+                        sum + Math.pow(value - mean, 2),
+                    0
+                ) / (values.length - 1);
+
+
+            repeatability = Math.sqrt(variance);
+        }
+
+
+        // =====================================================
+        // HYSTERESIS
+        //
+        // Hysteresis = M2 - M1
+        // =====================================================
+
+        let hysteresis = NaN;
+
+        if (
+            Number.isFinite(m1) &&
+            Number.isFinite(m2)
+        ) {
+            hysteresis = m2 - m1;
+        }
+
+
+        // =====================================================
+        // STD. UNCERTAINTY FOR HYSTERESIS
+        //
+        // Hysteresis / (2 × sqrt(3))
+        // =====================================================
+
+        let uHysteresis = NaN;
+
+        if (Number.isFinite(hysteresis)) {
+
+            uHysteresis =
+                hysteresis /
+                (2 * Math.sqrt(3));
+        }
+
+
+        // =====================================================
+        // UNCERTAINTY DUE TO RESOLUTION
+        //
+        // Assumed Resolution / sqrt(3)
+        // =====================================================
+
+        let uResolution = NaN;
+
+        if (Number.isFinite(assumedResolution)) {
+
+            uResolution =
+                assumedResolution /
+                Math.sqrt(3);
+        }
+
+
+        // =====================================================
+        // STD. UNCERTAINTY FOR PRESSURE TX
+        //
+        // Formula:
+        //
+        // (Reference Instrument Range × CMC) / 2
+        //
+        // CMC is percentage.
+        //
+        // Therefore:
+        //
+        // Range × (CMC / 100) / 2
+        // =====================================================
+
+        let uPressureTx = NaN;
+
+        const referenceRangeBar =
+            convertToBar(
+                referenceRange,
+                unit
+            );
+
+
+        if (
+            Number.isFinite(referenceRangeBar) &&
+            Number.isFinite(cmc)
+        ) {
+
+            uPressureTx =
+                (
+                    referenceRangeBar *
+                    (cmc / 100)
+                ) / 2;
+        }
+
+
+        // =====================================================
+        // COMBINED STANDARD UNCERTAINTY
+        //
+        // sqrt(
+        //     uHysteresis² +
+        //     uResolution² +
+        //     uPressureTx²
+        // )
+        // =====================================================
+
+        let combined = NaN;
+
+        if (
+            Number.isFinite(uHysteresis) &&
+            Number.isFinite(uResolution) &&
+            Number.isFinite(uPressureTx)
+        ) {
+
+            combined = Math.sqrt(
+                Math.pow(uHysteresis, 2) +
+                Math.pow(uResolution, 2) +
+                Math.pow(uPressureTx, 2)
+            );
+        }
+
+
+        // =====================================================
+        // EXPANDED UNCERTAINTY
+        //
+        // Combined × 2
+        // =====================================================
+
+        let expanded = NaN;
+
+        if (Number.isFinite(combined)) {
+
+            expanded =
+                combined * 2;
+        }
+
+
+        // =====================================================
+        // EXPANDED UNCERTAINTY % FSD
+        //
+        // Expanded / UUC Full Scale × 100
+        // =====================================================
+
+        let expandedPercent = NaN;
+
+        if (
+            Number.isFinite(expanded) &&
+            Number.isFinite(fullScale) &&
+            fullScale !== 0
+        ) {
+
+            expandedPercent =
+                (expanded / fullScale) * 100;
+        }
+
+
+        // =====================================================
+        // MAX EXPANDED UNCERTAINTY
+        //
+        // MAX(
+        //     Expanded % FSD,
+        //     CMC
+        // )
+        // =====================================================
+
+        let maximum = NaN;
+
+        if (
+            Number.isFinite(expandedPercent) &&
+            Number.isFinite(cmc)
+        ) {
+
+            maximum =
+                Math.max(
+                    expandedPercent,
+                    cmc
+                );
+        }
+
+        let hiddenInput = row.querySelector(
+        'input[name="uncertainty[]"]'
+    );
+
+    if (!hiddenInput) {
+        hiddenInput = document.createElement("input");
+        hiddenInput.type = "hidden";
+        hiddenInput.name = "uncertainty[]";
+        row.appendChild(hiddenInput);
+    }
+
+    hiddenInput.value = Number.isFinite(maximum)
+        ? maximum.toFixed(4)
+        : "";
+        
+
+
+        // =====================================================
+        // DISPLAY RESULTS
+        // =====================================================
+
+        const values = {
+
+            rep: repeatability,
+
+            hyst: hysteresis,
+
+            uhyst: uHysteresis,
+
+            ures: uResolution,
+
+            ptx: uPressureTx,
+
+            comb: combined,
+
+            exp: expanded,
+
+            pct: expandedPercent,
+
+            cmc: cmc,
+
+            max: maximum
+        };
+
+
+        Object.entries(values).forEach(
+            function ([key, value]) {
+
+                const cell =
+                    row.querySelector(
+                        `[data-o="${key}"]`
+                    );
+
+                if (!cell) {
+                    return;
+                }
+
+
+                if (key === "cmc") {
+
+                    cell.textContent =
+                        formatCMC(value);
+
+                } else {
+
+                    cell.textContent =
+                        format(value, 4);
+                }
+            }
+        );
+
+    });
+
+});
+</script>
+
+{% endblock %}

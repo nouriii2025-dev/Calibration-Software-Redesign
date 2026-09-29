@@ -1,0 +1,23 @@
+{% extends "labmanager/base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+    <div class="card auth-card">
+        <span class="brand-mark"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M9 3h6M10 3v6.5L4.6 18.6A2 2 0 0 0 6.3 21.5h11.4a2 2 0 0 0 1.7-2.9L14 9.5V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <h2>Welcome back</h2>
+        <p class="auth-sub">Log in to manage calibration jobs and certificates.</p>
+        <form method="post">
+            {% csrf_token %}
+            <label>Username</label>
+            {{ form.username }}
+            <label>Password</label>
+            {{ form.password }}
+            {% if form.errors %}
+                <p class="form-error">Invalid username or password.</p>
+            {% endif %}
+            <button class="btn" type="submit">Log in</button>
+        </form>
+        <p class="auth-foot">No account? <a href="{% url 'signup' %}">Sign up</a></p>
+    </div>
+</div>
+{% endblock %}
