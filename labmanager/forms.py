@@ -34,27 +34,78 @@ class JobForm(forms.ModelForm):
         }
 
 
+# class JobLineItemForm(forms.ModelForm):
+#     class Meta:
+#         model = JobLineItem
+#         fields = ["instrument", "model",  "range_from", "range_to", "unit", "quantity", "assigned_to",  "calibration_points",
+#             "calibration_validity", "reference_procedure",]
+
+#         widgets = {
+#             "range_from": forms.NumberInput(attrs={
+#                 "placeholder": "From",
+#                 "step": "any",
+#             }),
+#             "range_to": forms.NumberInput(attrs={
+#                 "placeholder": "To",
+#                 "step": "any",
+#             }),
+#         }
+
+#     def __init__(self, *args, **kwargs):
+#         super().__init__(*args, **kwargs)
+#         self.fields["instrument"].queryset = Instrument.objects.filter(is_active=True)
+#         self.fields["assigned_to"].queryset = User.objects.filter(role=User.Role.TECHNICIAN)
+#         for f in self.fields.values():
+#             f.widget.attrs.setdefault("class", "form-control")
 class JobLineItemForm(forms.ModelForm):
     class Meta:
         model = JobLineItem
-        fields = ["instrument", "model",  "range_from", "range_to", "unit", "quantity", "assigned_to",  "calibration_points",
-            "calibration_validity", "reference_procedure",]
+
+        fields = [
+            "instrument",
+            "model",
+            "range_from",
+            "range_to",
+            "unit",
+            "quantity",
+            "assigned_to",
+            "calibration_points",
+            "calibration_validity_value",
+            "calibration_validity_unit",
+            "reference_procedure",
+        ]
 
         widgets = {
             "range_from": forms.NumberInput(attrs={
                 "placeholder": "From",
                 "step": "any",
             }),
+
             "range_to": forms.NumberInput(attrs={
                 "placeholder": "To",
                 "step": "any",
             }),
+
+            "calibration_validity_value": forms.NumberInput(attrs={
+                "placeholder": "1",
+                "min": "1",
+                "step": "1",
+            }),
+
+            "calibration_validity_unit": forms.Select(),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields["instrument"].queryset = Instrument.objects.filter(is_active=True)
-        self.fields["assigned_to"].queryset = User.objects.filter(role=User.Role.TECHNICIAN)
+
+        self.fields["instrument"].queryset = (
+            Instrument.objects.filter(is_active=True)
+        )
+
+        self.fields["assigned_to"].queryset = (
+            User.objects.filter(role=User.Role.TECHNICIAN)
+        )
+
         for f in self.fields.values():
             f.widget.attrs.setdefault("class", "form-control")
 

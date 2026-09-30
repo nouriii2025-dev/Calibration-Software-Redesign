@@ -42,7 +42,7 @@
             <label>Reference Instrument Range</label>
             <div class="readonly-value">
                 {% if certificate.reference_instrument_range %}
-                    {{ certificate.reference_instrument_range }} {{ certificate.uuc_unit }}
+                    {{ certificate.reference_instrument_range }}
                 {% else %}
                     —
                 {% endif %}
@@ -59,12 +59,6 @@
             </div>
         </div>
 
-        <!-- <div>
-            <label>UUC Unit</label>
-            <div class="readonly-value">
-                {{ certificate.uuc_unit|default:"—" }}
-            </div>
-        </div> -->
     </div>
 
     <div class="row">
@@ -310,6 +304,34 @@ document.addEventListener("DOMContentLoaded", function () {
         return value * factor;
     }
 
+    function convertFromBar(value, unit) {
+
+    if (!Number.isFinite(value)) {
+        return NaN;
+    }
+
+    const key = String(unit || "bar")
+        .trim()
+        .toLowerCase();
+
+    const conversions = {
+        "bar": 1,
+        "psi": 1 / 14.5038,
+        "kpa": 1 / 100,
+        "mpa": 10,
+        "kg/cm2": 1 / 1.01972,
+        "kgf/cm²": 1 / 1.01972
+    };
+
+    const factor = conversions[key];
+
+    if (!Number.isFinite(factor) || factor === 0) {
+        return NaN;
+    }
+
+    return value / factor;
+}
+
 
     // =========================================================
     // CMC TABLE
@@ -545,21 +567,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
         let uPressureTx = NaN;
 
-        const referenceRangeBar =
-            convertToBar(
+        const referenceRangeUuc =
+            convertFromBar(
                 referenceRange,
                 unit
             );
 
 
         if (
-            Number.isFinite(referenceRangeBar) &&
+            Number.isFinite(referenceRangeUuc) &&
             Number.isFinite(cmc)
         ) {
 
             uPressureTx =
                 (
-                    referenceRangeBar *
+                    referenceRangeUuc *
                     (cmc / 100)
                 ) / 2;
         }

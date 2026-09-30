@@ -13,7 +13,7 @@ class User(AbstractUser):
         LAB_HEAD = "head", "Lab Head"
         TECHNICIAN = "technician", "Lab Technician"
 
-    role = models.CharField(max_length=20, choices=Role.choices, default=Role.TECHNICIAN)
+    role = models.CharField(max_length=20, choices=Role.choices, default=Role.LAB_HEAD)
 
     @property
     def is_lab_head(self):
@@ -364,6 +364,11 @@ UNIT_CHOICES = [
     ("kg/cm2", "kg/cm2"),
 ]
 
+CALIBRATION_VALIDITY_UNIT_CHOICES = [
+    ("days", "Days"),
+    ("months", "Months"),
+    ("years", "Years"),
+]
 
 class JobLineItem(models.Model):
     """One row of the job's instrument table. `quantity` certificates from
@@ -378,7 +383,19 @@ class JobLineItem(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     assigned_to = models.ForeignKey(User, on_delete=models.PROTECT,  related_name="assigned_line_items", limit_choices_to={"role": User.Role.TECHNICIAN},)
     calibration_points = models.PositiveIntegerField(default=1)
-    calibration_validity = models.CharField(max_length=100, blank=True) 
+    # calibration_validity = models.CharField(max_length=100, blank=True) 
+    calibration_validity_value = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        verbose_name="Calibration Validity",
+    )
+
+    calibration_validity_unit = models.CharField(
+        max_length=10,
+        choices=CALIBRATION_VALIDITY_UNIT_CHOICES,
+        default="years",
+        blank=True,
+    )
     reference_procedure = models.CharField(max_length=150, blank=True, choices=REFERENCE_PROCEDURE_CHOICES)
 
     def __str__(self):
