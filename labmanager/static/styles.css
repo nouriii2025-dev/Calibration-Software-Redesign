@@ -1092,3 +1092,39 @@ label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted)
 .dash-edit-btn:hover {
     transform: translateY(-1px);
 }
+
+
+.dash-edit-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 32px;
+    height: 32px;
+
+    margin-left: 0.35rem;
+
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+
+    color: #1552a3;
+    background: #ffffff;
+
+    text-decoration: none;
+
+    font-size: 18px;
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+        background-color 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
+}
+
+.dash-edit-icon:hover {
+    background: #f3f4f6;
+    color: #3737ef;
+    border-color: #384bb9;
+}

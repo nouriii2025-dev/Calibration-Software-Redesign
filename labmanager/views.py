@@ -148,6 +148,233 @@ def job_create(request):
     )
 
 
+@login_required
+@user_passes_test(is_lab_head)
+def job_edit(request, pk):
+    job = get_object_or_404(Job, pk=pk)
+
+    if request.method == "POST":
+        job_form = JobForm(request.POST, instance=job)
+
+        line_item_formset = JobLineItemFormSet(
+            request.POST,
+            instance=job,
+            prefix="line_items",
+        )
+
+        doc_formset = JobDocumentFormSet(
+            request.POST,
+            request.FILES,
+            instance=job,
+            prefix="documents",
+        )
+
+        if (
+            job_form.is_valid()
+            and line_item_formset.is_valid()
+            and doc_formset.is_valid()
+        ):
+            with transaction.atomic():
+
+                # -------------------------------------------------
+                # Save main Job information
+                # -------------------------------------------------
+
+                old_quantity = job.quantity
+
+                job = job_form.save()
+
+                new_quantity = job.quantity
+
+                # -------------------------------------------------
+                # Save line items
+                # -------------------------------------------------
+
+                line_items = line_item_formset.save()
+
+                # -------------------------------------------------
+                # Save documents
+                # -------------------------------------------------
+
+                doc_formset.save()
+
+                # -------------------------------------------------
+                # Handle certificate quantity changes
+                # -------------------------------------------------
+
+                current_certificate_count = job.certificates.count()
+
+                # Quantity increased
+                if new_quantity > current_certificate_count:
+
+                    certificates_to_create = (
+                        new_quantity - current_certificate_count
+                    )
+
+                    for _ in range(certificates_to_create):
+                        Certificate.objects.create(job=job)
+
+                # Quantity decreased
+                elif new_quantity < current_certificate_count:
+
+                    excess_count = (
+                        current_certificate_count - new_quantity
+                    )
+
+                    # Only remove UNUSED certificates.
+                    #
+                    # Certificates that already have a line item
+                    # or calibration data must not be deleted.
+                    unused_certificates = list(
+                        job.certificates
+                        .filter(
+                            line_item__isnull=True,
+                        )
+                        .order_by("-number")[:excess_count]
+                    )
+
+                    for certificate in unused_certificates:
+                        certificate.delete()
+
+                # -------------------------------------------------
+                # Re-assign certificates according to line items
+                # -------------------------------------------------
+
+                # First detach certificates from line items that
+                # were changed/deleted.
+                #
+                # IMPORTANT:
+                # Existing certificate data is preserved.
+                #
+
+                certificates = list(
+                    job.certificates
+                    .select_related("line_item")
+                    .order_by("number")
+                )
+
+                # Existing assignments are preserved where possible.
+                #
+                # Rebuild only the assignment pool for certificates
+                # that are currently unassigned.
+                #
+
+                for line_item in line_items:
+
+                    if not line_item.pk:
+                        continue
+
+                    # How many certificates already belong to this
+                    # line item?
+                    assigned_count = line_item.certificates.count()
+
+                    required_count = line_item.quantity
+
+                    # If this line item needs more certificates,
+                    # assign available unassigned certificates.
+                    if assigned_count < required_count:
+
+                        certificates_needed = (
+                            required_count - assigned_count
+                        )
+
+                        available = (
+                            job.certificates
+                            .filter(line_item__isnull=True)
+                            .order_by("number")[:certificates_needed]
+                        )
+
+                        for certificate in available:
+                            certificate.line_item = line_item
+                            certificate.reference_procedure = (
+                                line_item.reference_procedure
+                            )
+                            certificate.uuc_full_scale = (
+                                line_item.range_to
+                            )
+                            certificate.uuc_unit = (
+                                line_item.unit or ""
+                            )
+
+                            certificate.save(
+                                update_fields=[
+                                    "line_item",
+                                    "reference_procedure",
+                                    "uuc_full_scale",
+                                    "uuc_unit",
+                                ]
+                            )
+
+                    # If line item quantity was reduced, detach the
+                    # extra certificates.
+                    elif assigned_count > required_count:
+
+                        excess = (
+                            assigned_count - required_count
+                        )
+
+                        assigned_certificates = list(
+                            line_item.certificates
+                            .order_by("-number")[:excess]
+                        )
+
+                        for certificate in assigned_certificates:
+
+                            # Do not destroy certificate information.
+                            # Just make it available for reassignment.
+                            certificate.line_item = None
+                            certificate.save(
+                                update_fields=["line_item"]
+                            )
+
+                # -------------------------------------------------
+                # Re-run assignment for any remaining unassigned
+                # certificates.
+                # -------------------------------------------------
+
+                for line_item in (
+                    job.line_items
+                    .all()
+                    .order_by("id")
+                ):
+
+                    line_item.assign_certificates()
+
+            messages.success(
+                request,
+                f"Job {job.job_number} updated successfully."
+            )
+
+            return redirect(
+                "job_detail",
+                pk=job.pk
+            )
+
+    else:
+        job_form = JobForm(instance=job)
+
+        line_item_formset = JobLineItemFormSet(
+            instance=job,
+            prefix="line_items",
+        )
+
+        doc_formset = JobDocumentFormSet(
+            instance=job,
+            prefix="documents",
+        )
+
+    return render(
+        request,
+        "labmanager/job_edit.html",
+        {
+            "job": job,
+            "job_form": job_form,
+            "line_item_formset": line_item_formset,
+            "doc_formset": doc_formset,
+        },
+    )
+
+
 # @login_required
 # def job_detail(request, pk):
 #     job = get_object_or_404(Job, pk=pk)

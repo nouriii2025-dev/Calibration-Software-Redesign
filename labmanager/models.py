@@ -447,6 +447,32 @@ class JobLineItem(models.Model):
                 "uuc_unit",
             ])
 
+    def sync_certificates(self):
+        """
+        Synchronize certificates belonging to this line item
+        with the current line-item configuration.
+        """
+
+        for cert in self.certificates.all():
+
+            cert.reference_procedure = (
+                self.reference_procedure or ""
+            )
+
+            cert.uuc_full_scale = self.range_to
+
+            cert.uuc_unit = (
+                self.unit or ""
+            )
+
+            cert.save(
+                update_fields=[
+                    "reference_procedure",
+                    "uuc_full_scale",
+                    "uuc_unit",
+                ]
+            )
+
 
 def job_document_path(instance, filename):
     return f"job_documents/{instance.job.job_number}/{filename}"

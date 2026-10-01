@@ -103,15 +103,6 @@
                         <td data-label="Job Number"><span class="dash-job-number">{{ job.job_number }}</span></td>
                         <td data-label="Customer">{{ job.customer_name }}</td>
                         <td data-label="PO Number">{{ job.po_number }}</td>
-                        <!-- <td data-label="Certificates">
-                            <div class="dash-progress">
-                                <div class="dash-progress-bar">
-                                    <div class="dash-progress-fill dash-progress-fill-{{ job.assignment_status }}"
-                                         style="width: {{ job.assignment_percent }}%;"></div>
-                                </div>
-                                <span class="dash-progress-text">{{ job.certificates_assigned_count }}/{{ job.quantity }}</span>
-                            </div>
-                        </td> -->
                         <td><span class="pill">{{ job.certificates_assigned_count }}/{{ job.quantity }} assigned</span></td>
                         <td data-label="Committed Date">{{ job.committed_date|default:"—" }}</td>
                         <td data-label="Status">
@@ -123,9 +114,29 @@
                                 <span class="dash-badge dash-badge-unassigned">Unassigned</span>
                             {% endif %}
                         </td>
-                        <td data-label="" class="dash-col-action">
+                        <!-- <td data-label="" class="dash-col-action">
                             <a class="dash-btn dash-btn-ghost dash-btn-small" href="{% url 'job_detail' job.pk %}">View</a>
-                        </td>                       
+                        </td>                        -->
+                        <td data-label="" class="dash-col-action">
+                            <a
+                                class="dash-btn dash-btn-ghost dash-btn-small"
+                                href="{% url 'job_detail' job.pk %}">
+                                View
+                            </a>
+
+                            {% if user.is_lab_head %}
+                                <a
+                                    class="dash-edit-icon"
+                                    href="{% url 'job_edit' job.pk %}"
+                                    title="Edit Job"
+                                    aria-label="Edit Job">
+
+                                    ✎
+
+                                </a>
+                            {% endif %}
+
+                        </td>
                     </tr>
                     {% empty %}
                     <tr>

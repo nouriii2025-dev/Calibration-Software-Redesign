@@ -1,7 +1,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.forms import inlineformset_factory
-
+from django.core.exceptions import ValidationError
+from django.forms import BaseInlineFormSet
 from .models import *
 
 
@@ -34,29 +35,6 @@ class JobForm(forms.ModelForm):
         }
 
 
-# class JobLineItemForm(forms.ModelForm):
-#     class Meta:
-#         model = JobLineItem
-#         fields = ["instrument", "model",  "range_from", "range_to", "unit", "quantity", "assigned_to",  "calibration_points",
-#             "calibration_validity", "reference_procedure",]
-
-#         widgets = {
-#             "range_from": forms.NumberInput(attrs={
-#                 "placeholder": "From",
-#                 "step": "any",
-#             }),
-#             "range_to": forms.NumberInput(attrs={
-#                 "placeholder": "To",
-#                 "step": "any",
-#             }),
-#         }
-
-#     def __init__(self, *args, **kwargs):
-#         super().__init__(*args, **kwargs)
-#         self.fields["instrument"].queryset = Instrument.objects.filter(is_active=True)
-#         self.fields["assigned_to"].queryset = User.objects.filter(role=User.Role.TECHNICIAN)
-#         for f in self.fields.values():
-#             f.widget.attrs.setdefault("class", "form-control")
 class JobLineItemForm(forms.ModelForm):
     class Meta:
         model = JobLineItem
@@ -110,13 +88,58 @@ class JobLineItemForm(forms.ModelForm):
             f.widget.attrs.setdefault("class", "form-control")
 
 
+# JobLineItemFormSet = inlineformset_factory(
+#     Job,
+#     JobLineItem,
+#     form=JobLineItemForm,
+#     extra=1,
+#     can_delete=True,
+# )
+
+
+class BaseJobLineItemFormSet(BaseInlineFormSet):
+
+    def clean(self):
+
+        super().clean()
+
+        if any(self.errors):
+            return
+
+        total_quantity = 0
+
+        for form in self.forms:
+
+            if not form.cleaned_data:
+                continue
+
+            if form.cleaned_data.get("DELETE"):
+                continue
+
+            quantity = form.cleaned_data.get("quantity") or 0
+
+            total_quantity += quantity
+
+        if self.instance and self.instance.quantity:
+
+            if total_quantity != self.instance.quantity:
+
+                raise ValidationError(
+                    f"The total instrument quantity "
+                    f"({total_quantity}) must equal the job "
+                    f"quantity ({self.instance.quantity})."
+                )
+
+
 JobLineItemFormSet = inlineformset_factory(
     Job,
     JobLineItem,
     form=JobLineItemForm,
+    formset=BaseJobLineItemFormSet,
     extra=1,
     can_delete=True,
 )
+
 
 
 class JobDocumentForm(forms.ModelForm):

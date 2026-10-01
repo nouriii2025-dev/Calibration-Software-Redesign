@@ -18,4 +18,5 @@ urlpatterns = [
     path("certificates/<int:pk>/print/",views.certificate_print,name="certificate_print",),
     path("uncertainty/<int:pk>/",views.uncertainty,name="uncertainty",),
     path("certificate/<int:pk>/save-uncertainty/",views.save_uncertainty,name="save_uncertainty",),
+    path("jobs/<int:pk>/edit/",views.job_edit,name="job_edit",),
 ]
