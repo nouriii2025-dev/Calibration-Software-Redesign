@@ -292,7 +292,6 @@ document.addEventListener("DOMContentLoaded", function () {
             "kpa": 1 / 100,
             "mpa": 10,
             "kg/cm2": 1 / 1.01972,
-            "kgf/cm²": 1 / 1.01972
         };
 
         const factor = conversions[key];
@@ -320,7 +319,6 @@ document.addEventListener("DOMContentLoaded", function () {
         "kpa": 1 / 100,
         "mpa": 10,
         "kg/cm2": 1 / 1.01972,
-        "kgf/cm²": 1 / 1.01972
     };
 
     const factor = conversions[key];
@@ -682,7 +680,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     hiddenInput.value = Number.isFinite(maximum)
-        ? maximum.toFixed(4)
+        ? maximum.toFixed(2)
         : "";
         
 
@@ -716,30 +714,37 @@ document.addEventListener("DOMContentLoaded", function () {
 
 
         Object.entries(values).forEach(
-            function ([key, value]) {
+        function ([key, value]) {
 
-                const cell =
-                    row.querySelector(
-                        `[data-o="${key}"]`
-                    );
+            const cell =
+                row.querySelector(
+                    `[data-o="${key}"]`
+                );
 
-                if (!cell) {
-                    return;
-                }
-
-
-                if (key === "cmc") {
-
-                    cell.textContent =
-                        formatCMC(value);
-
-                } else {
-
-                    cell.textContent =
-                        format(value, 4);
-                }
+            if (!cell) {
+                return;
             }
-        );
+
+            if (key === "cmc") {
+
+                cell.textContent =
+                    formatCMC(value);
+
+            } else if (key === "max") {
+
+                // Max Expanded Un. (% of FSD)
+                // Display only 2 decimal places
+                cell.textContent =
+                    format(value, 2);
+
+            } else {
+
+                // All other calculations remain at 4 decimals
+                cell.textContent =
+                    format(value, 4);
+            }
+        }
+    );
 
     });
 

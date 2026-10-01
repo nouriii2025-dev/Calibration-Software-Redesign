@@ -88,14 +88,6 @@ class JobLineItemForm(forms.ModelForm):
             f.widget.attrs.setdefault("class", "form-control")
 
 
-# JobLineItemFormSet = inlineformset_factory(
-#     Job,
-#     JobLineItem,
-#     form=JobLineItemForm,
-#     extra=1,
-#     can_delete=True,
-# )
-
 
 class BaseJobLineItemFormSet(BaseInlineFormSet):
 
@@ -136,7 +128,7 @@ JobLineItemFormSet = inlineformset_factory(
     JobLineItem,
     form=JobLineItemForm,
     formset=BaseJobLineItemFormSet,
-    extra=1,
+    extra=0,
     can_delete=True,
 )
 
@@ -153,7 +145,7 @@ JobDocumentFormSet = inlineformset_factory(
     Job,
     JobDocument,
     form=JobDocumentForm,
-    extra=1,
+    extra=0,
     can_delete=True,
 )
 
@@ -171,7 +163,7 @@ class CertificateForm(forms.ModelForm):
             ("psi", "psi"),
             ("kPa", "kPa"),
             ("MPa", "MPa"),
-            ("kgf/cm²", "kgf/cm²"),
+            ("kg/cm2", "kg/cm2"),
         ],
         required=False,
     )

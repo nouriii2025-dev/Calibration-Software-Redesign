@@ -114,9 +114,7 @@
                                 <span class="dash-badge dash-badge-unassigned">Unassigned</span>
                             {% endif %}
                         </td>
-                        <!-- <td data-label="" class="dash-col-action">
-                            <a class="dash-btn dash-btn-ghost dash-btn-small" href="{% url 'job_detail' job.pk %}">View</a>
-                        </td>                        -->
+              
                         <td data-label="" class="dash-col-action">
                             <a
                                 class="dash-btn dash-btn-ghost dash-btn-small"
@@ -125,7 +123,7 @@
                             </a>
 
                             {% if user.is_lab_head %}
-                                <a
+                                <a 
                                     class="dash-edit-icon"
                                     href="{% url 'job_edit' job.pk %}"
                                     title="Edit Job"

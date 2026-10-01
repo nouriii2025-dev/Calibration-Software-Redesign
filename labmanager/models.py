@@ -233,7 +233,6 @@ class Certificate(models.Model):
             "kpa": Decimal("1") / Decimal("100"),
             "mpa": Decimal("10"),
             "kg/cm2": Decimal("1") / Decimal("1.01972"),
-            "kgf/cm²": Decimal("1") / Decimal("1.01972"),
         }
 
         factor = conversions_to_bar.get(unit)

@@ -303,7 +303,7 @@
                         </td>
 
 
-                        <td>
+                        <!-- <td>
 
                             {% if form.instance.pk %}
 
@@ -314,6 +314,31 @@
                                 <button
                                     type="button"
                                     class="remove-row">
+                                    ✕
+                                </button>
+
+                            {% endif %}
+
+                        </td> -->
+                        <td>
+
+                            {% if form.instance.pk %}
+
+                                {{ form.DELETE }}
+
+                                <button
+                                    type="button"
+                                    class="remove-existing-row"
+                                    title="Remove instrument">
+                                    ✕
+                                </button>
+
+                            {% else %}
+
+                                <button
+                                    type="button"
+                                    class="remove-row"
+                                    title="Remove instrument">
                                     ✕
                                 </button>
 
@@ -595,84 +620,102 @@ function makeAdder(
     emptyRowId,
     prefix
 ) {
-
-    const addBtn =
-        document.getElementById(addBtnId);
-
-    const body =
-        document.getElementById(bodyId);
-
-    const totalForms =
-        document.querySelector(
-            `#id_${prefix}-TOTAL_FORMS`
-        );
-
-
-    addBtn.addEventListener(
-        'click',
-        function () {
-
-            const idx =
-                parseInt(
-                    totalForms.value,
-                    10
-                );
-
-
-            const emptyRow =
-                document
-                    .getElementById(emptyRowId)
-                    .querySelector('tr')
-                    .cloneNode(true);
-
-
-            emptyRow.innerHTML =
-                emptyRow.innerHTML.replace(
-                    /__prefix__/g,
-                    idx
-                );
-
-
-            body.appendChild(emptyRow);
-
-            totalForms.value =
-                idx + 1;
-
-
-            emptyRow
-                .querySelector('.remove-row')
-                .addEventListener(
-                    'click',
-                    function () {
-
-                        emptyRow.remove();
-
-                    }
-                );
-
-        }
+    const addBtn = document.getElementById(addBtnId);
+    const body = document.getElementById(bodyId);
+    const totalForms = document.querySelector(
+        `#id_${prefix}-TOTAL_FORMS`
     );
 
+    if (!addBtn || !body || !totalForms) {
+        return;
+    }
 
-    body
-        .querySelectorAll('.remove-row')
-        .forEach(function (btn) {
+    /* =========================================================
+       ADD NEW ROW
+       ========================================================= */
 
-            btn.addEventListener(
-                'click',
-                function () {
+    addBtn.addEventListener('click', function () {
 
-                    btn
-                        .closest('tr')
-                        .remove();
+        const idx = parseInt(totalForms.value, 10);
 
+        const template = document
+            .getElementById(emptyRowId)
+            .querySelector('tr');
+
+        const newRow = template.cloneNode(true);
+
+        newRow.innerHTML = newRow.innerHTML.replace(
+            /__prefix__/g,
+            idx
+        );
+
+        body.appendChild(newRow);
+
+        totalForms.value = idx + 1;
+
+        /* New rows don't have a database ID,
+           so they can simply be removed. */
+
+        const removeBtn =
+            newRow.querySelector('.remove-row');
+
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function () {
+                newRow.remove();
+            });
+        }
+    });
+
+
+    /* =========================================================
+       EXISTING ROWS
+       ========================================================= */
+
+    body.querySelectorAll('.line-item-row, .document-row')
+        .forEach(function (row) {
+
+            const removeBtn =
+                row.querySelector('.remove-row');
+
+            if (!removeBtn) {
+                return;
+            }
+
+            removeBtn.addEventListener('click', function () {
+
+                /*
+                 * If this row has a DELETE checkbox,
+                 * it is an existing database record.
+                 */
+
+                const deleteCheckbox =
+                    row.querySelector(
+                        'input[type="checkbox"][name$="-DELETE"]'
+                    );
+
+                if (deleteCheckbox) {
+
+                    deleteCheckbox.checked = true;
+
+                    row.style.display = 'none';
+
+                } else {
+
+                    /*
+                     * New unsaved row.
+                     * It can safely be removed from the DOM.
+                     */
+
+                    row.remove();
                 }
-            );
-
+            });
         });
-
 }
 
+
+/* =============================================================
+   LINE ITEMS
+   ============================================================= */
 
 makeAdder(
     'add-row',
@@ -682,12 +725,56 @@ makeAdder(
 );
 
 
+/* =============================================================
+   DOCUMENTS
+   ============================================================= */
+
 makeAdder(
     'add-doc',
     'documents-body',
     'document-empty-row',
     'documents'
 );
+
+body.querySelectorAll('.line-item-row, .document-row')
+    .forEach(function (row) {
+
+        const removeExistingBtn =
+            row.querySelector('.remove-existing-row');
+
+        if (removeExistingBtn) {
+
+            removeExistingBtn.addEventListener(
+                'click',
+                function () {
+
+                    const deleteCheckbox =
+                        row.querySelector(
+                            'input[type="checkbox"][name$="-DELETE"]'
+                        );
+
+                    if (deleteCheckbox) {
+                        deleteCheckbox.checked = true;
+                    }
+
+                    row.style.display = 'none';
+                }
+            );
+        }
+
+        const removeNewBtn =
+            row.querySelector('.remove-row');
+
+        if (removeNewBtn) {
+
+            removeNewBtn.addEventListener(
+                'click',
+                function () {
+                    row.remove();
+                }
+            );
+        }
+    });
 
 </script>
 
