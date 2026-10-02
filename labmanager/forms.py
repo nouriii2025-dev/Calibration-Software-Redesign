@@ -184,6 +184,7 @@ class CertificateForm(forms.ModelForm):
             "device_tag_number",
             "device_resolution",
             "device_accuracy",
+            "device_accuracy_unit",
             "device_ratio",
             "reference_instrument_range",
             "uuc_full_scale",

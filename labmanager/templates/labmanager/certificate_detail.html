@@ -51,9 +51,16 @@
                 <label>Resolution</label>
                 {{ cert_form.device_resolution }}
             </div>
-            <div>
+            <!-- <div>
                 <label>Accuracy</label>
                 {{ cert_form.device_accuracy }}
+            </div> -->
+            <div>
+                <label>Accuracy</label>
+                <div style="display:flex; gap:0.4rem; align-items:center;">
+                    {{ cert_form.device_accuracy }}
+                    {{ cert_form.device_accuracy_unit }}
+                </div>
             </div>
             <div>
                 <label>Ratio</label>

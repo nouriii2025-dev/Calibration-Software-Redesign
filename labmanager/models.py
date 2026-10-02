@@ -89,6 +89,11 @@ class Job(models.Model):
     def certificates_remaining(self):
         return self.quantity - self.certificates_assigned_count
 
+ACCURACY_UNIT_CHOICES = [
+    ("FS", "FS"),
+    ("Rdg", "Rdg"),
+]
+
 
 class Certificate(models.Model):
     """One certificate slot generated for a Job."""
@@ -116,6 +121,12 @@ class Certificate(models.Model):
     )
 
     device_accuracy = models.CharField(max_length=100, blank=True)
+    device_accuracy_unit = models.CharField(
+        max_length=10,
+        choices=ACCURACY_UNIT_CHOICES,
+        default="FS",
+        blank=True,
+    )
 
     device_ratio = models.DecimalField(
         max_digits=20,
