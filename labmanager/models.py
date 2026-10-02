@@ -159,8 +159,6 @@ class Certificate(models.Model):
     ambient_pressure = models.CharField(max_length=50, blank=True)
     reference_procedure = models.CharField(max_length=150, blank=True)
     temperature_variation = models.CharField(max_length=50, blank=True)
-
-
     instrument_received_good = models.BooleanField(
         default=True,
         verbose_name="Instrument is received in good condition"
