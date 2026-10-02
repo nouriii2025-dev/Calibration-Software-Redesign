@@ -159,7 +159,20 @@ class Certificate(models.Model):
     ambient_pressure = models.CharField(max_length=50, blank=True)
     reference_procedure = models.CharField(max_length=150, blank=True)
     temperature_variation = models.CharField(max_length=50, blank=True)
-    condition_notes = models.TextField(blank=True)
+
+
+    instrument_received_good = models.BooleanField(
+        default=True,
+        verbose_name="Instrument is received in good condition"
+    )
+    instrument_adjusted = models.BooleanField(
+        default=False,
+        verbose_name="Instrument is adjusted and post adjustment values are reported"
+    )
+    no_adjustment = models.BooleanField(
+        default=True,
+        verbose_name="No adjustment is carried out and measurements in this certificate are as received figures"
+    )
 
     # --- Sign-off ---
     calibration_date = models.DateField(null=True, blank=True)

@@ -482,10 +482,18 @@
 
     <div class="note-head">Note:</div>
     <div class="checks">
-        <!-- Tick state is static here (matches the sample). Wire to model fields if they vary per certificate. -->
-        <div><span class="box">&#10003;</span> Instrument is received in good condition.</div>
-        <div><span class="box"></span> Instrument is adjusted and post adjustment values are reported.</div>
-        <div><span class="box">&#10003;</span> No adjustment is carried out and measurements in this certificate are as received figures.</div>
+        <div>
+            <span class="box">{% if certificate.instrument_received_good %}&#10003;{% endif %}</span>
+            Instrument is received in good condition.
+        </div>
+        <div>
+            <span class="box">{% if certificate.instrument_adjusted %}&#10003;{% endif %}</span>
+            Instrument is adjusted and post adjustment values are reported.
+        </div>
+        <div>
+            <span class="box">{% if certificate.no_adjustment %}&#10003;{% endif %}</span>
+            No adjustment is carried out and measurements in this certificate are as received figures.
+        </div>
     </div>
 
     <div class="comments">

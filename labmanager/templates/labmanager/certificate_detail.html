@@ -152,6 +152,34 @@
         {{ cert_form.condition_notes }}
     </div>
 
+
+        <div class="card">
+        <h2>Note</h2>
+        <div style="display:flex; flex-direction:column; gap:0.6rem;">
+            <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;">
+                {{ cert_form.instrument_received_good }}
+                <span>Instrument is received in good condition.</span>
+            </label>
+            <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;">
+                {{ cert_form.instrument_adjusted }}
+                <span>Instrument is adjusted and post adjustment values are reported.</span>
+            </label>
+            <label style="display:flex; align-items:flex-start; gap:0.5rem; cursor:pointer;">
+                {{ cert_form.no_adjustment }}
+                <span>No adjustment is carried out and measurements in this certificate are as received figures.</span>
+            </label>
+        </div>
+        {% if cert_form.instrument_received_good.errors or cert_form.instrument_adjusted.errors or cert_form.no_adjustment.errors %}
+            <div class="muted" style="color:var(--red); margin-top:0.5rem;">
+                {{ cert_form.instrument_received_good.errors }}
+                {{ cert_form.instrument_adjusted.errors }}
+                {{ cert_form.no_adjustment.errors }}
+            </div>
+        {% endif %}
+    </div>
+
+
+
     <div class="card">
     <h2>Calibration Results</h2>
 
