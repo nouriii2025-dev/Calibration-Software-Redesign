@@ -797,9 +797,6 @@ label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted)
     font-variant-numeric: tabular-nums;
 }
 
-
-
-
 /* ==========================================================
    Dashboard page — modern enterprise redesign
    Scoped under .dash-page so it doesn't affect other pages.
@@ -858,7 +855,7 @@ label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted)
 }
 .dash-btn-icon { font-weight: 700; }
 .dash-btn-primary { background: var(--dash-primary); color: #fff; }
-.dash-btn-primary:hover { background: var(--dash-primary-dk); }
+.dash-btn-primary:hover { background: var(--dash-primary-dk); color: #fff; }
 .dash-btn-ghost { background: var(--dash-surface); color: var(--dash-primary); border-color: var(--dash-border); }
 .dash-btn-ghost:hover { background: var(--dash-primary-bg); border-color: var(--dash-primary); }
 .dash-btn-small { padding: 0.42rem 0.8rem; font-size: 0.82rem; }
@@ -1127,4 +1124,27 @@ label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted)
     background: #f3f4f6;
     color: #3737ef;
     border-color: #384bb9;
+}
+
+
+.remove-cell {
+    text-align: center;
+    width: 50px;
+}
+
+.remove-row {
+    border: none;
+    background: transparent;
+    color: #dc2626;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    padding: 4px 8px;
+}
+
+.remove-row:hover {
+    color: #b91c1c;
+    background: #fee2e2;
+    border-radius: 4px;
 }

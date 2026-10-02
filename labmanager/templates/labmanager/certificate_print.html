@@ -1,155 +1,301 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-
-    <title>
-        Certificate {{ certificate.number }}
-    </title>
+    <title>Certificate {{ certificate.number }}</title>
 
     <style>
         @page {
             size: A4;
-            margin: 12mm;
+            margin: 8mm;
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; }
 
         body {
             margin: 0;
             font-family: Arial, Helvetica, sans-serif;
-            font-size: 11px;
+            font-size: 10.5px;
             color: #000;
             background: #fff;
         }
 
+        /* One A4 page: footer is pushed to the bottom */
         .certificate {
             width: 100%;
+            min-height: 280mm;
+            display: flex;
+            flex-direction: column;
         }
 
+        table { border-collapse: collapse; width: 100%; }
+
+        /* ---------- HEADER (exact match to screenshot) ---------- */
         .header {
-            border: 1px solid #000;
+            border: 1.5px solid #333;
             display: grid;
-            grid-template-columns: 24% 52% 24%;
-            min-height: 95px;
+            grid-template-columns: 26% 48% 26%;   /* proportions from the SS */
+            align-items: stretch;
         }
 
         .header > div {
-            border-right: 1px solid #000;
-            padding: 8px;
+            border-right: 1.5px solid #333;
         }
-
         .header > div:last-child {
             border-right: none;
         }
 
-        .logo-box {
+        /* LEFT – EIAC logo + lab code */
+        .hdr-left {
             display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 6px 6px;
+        }
+        .eiac-logo {
+            width: 92%;
+            max-width: 140px;
+            height: auto;
+            display: block;
+        }
+        .lab-code {
+            font-weight: bold;
+            font-size: 11px;
+            text-align: center;
+            margin-top: 4px;
+            letter-spacing: 0.3px;
+        }
+
+        /* MIDDLE – title + 6-row table */
+        .hdr-mid {
+            display: flex;
+            flex-direction: column;
+        }
+        .hdr-mid .cert-title {
+            text-align: center;
+            font-style: italic;
+            font-weight: bold;
+            font-size: 12px;
+            padding: 5px 4px;
+            border-bottom: 1.5px solid #333;
+            background: #e6e6e6;
+            letter-spacing: 0.4px;
+        }
+        .hdr-mid table {
+            width: 100%;
+            height: 100%;
+            border-collapse: collapse;
+        }
+        .hdr-mid table td {
+            width: 50%;
+            text-align: center;
+            padding: 3px 4px;
+            border-bottom: 1.5px solid #333;
+            border-right: 1.5px solid #333;
+            font-size: 10.5px;
+            vertical-align: middle;
+        }
+        .hdr-mid table td:last-child {
+            border-right: none;
+        }
+        .hdr-mid table tr:last-child td {
+            border-bottom: none;
+        }
+        .hdr-mid .lbl {
+            background: #e6e6e6;
+            font-weight: bold;
+            font-style: italic;
+            font-size: 10px;
+        }
+
+        /* RIGHT – Accutech logo + company */
+        .hdr-right {
+            display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 18px;
+            text-align: center;
+            padding: 6px 8px;
+        }
+        .accu-logo {
+            width: 78%;
+            max-width: 160px;
+            height: auto;
+            display: block;
+        }
+        .hdr-right .company {
             font-weight: bold;
+            font-size: 10.5px;
+            margin-top: 5px;
+            line-height: 1.15;
+        }
+        .hdr-right .tagline {
+            font-size: 8.5px;
+            margin-top: 2px;
+            line-height: 1.2;
         }
 
-        .certificate-title {
+        /* ---------- BAND TITLES ---------- */
+        .band {
+            background: #d9d9d9;
+            border: 1px solid #555;
             text-align: center;
             font-weight: bold;
-            font-size: 15px;
-            padding: 8px;
+            font-style: italic;
+            padding: 2px 4px;
+            font-size: 10.5px;
         }
 
-        .certificate-meta {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 5px;
-        }
-
-        .certificate-meta td {
-            border: 1px solid #000;
-            padding: 4px;
-        }
-
-        .section-title {
-            margin-top: 8px;
-            border: 1px solid #000;
-            background: #eee;
+        /* ---------- CUSTOMER ---------- */
+        .customer {
+            border: 1px solid #555;
+            border-top: none;
             padding: 4px 6px;
+        }
+        .customer td { padding: 3px 0; vertical-align: top; }
+        .customer .k { width: 90px; font-weight: bold; }
+        .customer .c { width: 12px; }
+        .customer .v { font-weight: bold; }
+        .customer .k2 { width: 55px; font-weight: bold; }
+        .customer .v2 { width: 150px; font-weight: bold; }
+
+        /* ---------- DEVICE + WORKING STANDARD ---------- */
+        .two-col {
+            display: grid;
+            grid-template-columns: 47% 53%;
+            margin-top: 3px;
+        }
+        .two-col > div { border: 1px solid #555; }
+        .two-col > div + div { border-left: none; }
+        .two-col .band { border: none; border-bottom: 1px solid #555; }
+        .kv { padding: 3px 6px; }
+        .kv td { padding: 1.5px 0; vertical-align: top; }
+        .kv .k { width: 80px; }
+        .kv .c { width: 12px; }
+        .ws .k { width: 100px; }
+        .ws td.n { width: 18px; }
+
+        /* ---------- CONDITIONS ---------- */
+        .conditions { margin-top: 3px; border: 1px solid #555; }
+        .conditions .band { border: none; border-bottom: 1px solid #555; }
+        .cond-ref {
+            text-align: center;
+            padding: 2px;
+            border-bottom: 1px solid #555;
+        }
+        .cond-row { border-bottom: 1px solid #555; }
+        .cond-row td { padding: 2px 6px; width: 33.33%; }
+        .cond-row td + td { border-left: 1px solid #555; }
+        .cond-row .u { margin-left: 4px; }
+        .cond-var { text-align: center; font-style: italic; padding: 2px; }
+
+        /* ---------- RESULTS ---------- */
+        .res-title {
             font-weight: bold;
+            font-style: italic;
+            margin: 7px 0 3px;
+            font-size: 11px;
         }
-
-        .details-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        .details-table td {
-            border: 1px solid #000;
-            padding: 5px;
-            vertical-align: top;
-        }
-
-        .label {
-            font-weight: bold;
-            width: 18%;
-        }
-
-        .results-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 5px;
-        }
+        .res-title span { border-bottom: 1px solid #000; padding-bottom: 1px; }
 
         .results-table th,
         .results-table td {
-            border: 1px solid #000;
-            padding: 5px 4px;
+            border: 1px solid #555;
+            padding: 4px 4px;
             text-align: center;
+            font-style: italic;
         }
-
         .results-table th {
+            background: #d9d9d9;
             font-weight: bold;
         }
+        .results-table td { height: 21px; }
 
-        .notes {
-            margin-top: 7px;
+        .uncert-note {
+            font-style: italic;
+            font-size: 8.8px;
+            margin-top: 3px;
+            padding-bottom: 3px;
+            border-bottom: 2px solid #555;
+        }
+
+        .remarks { margin-top: 4px; font-style: italic; }
+        .remarks b { font-weight: bold; }
+
+        .note-head {
+            margin-top: 4px;
+            font-weight: bold;
+            font-style: italic;
+            text-decoration: underline;
+        }
+        .checks { margin-top: 3px; font-style: italic; }
+        .checks div { margin: 2px 0; display: flex; align-items: center; }
+        .box {
+            display: inline-block;
+            width: 11px; height: 11px;
+            border: 1px solid #555;
+            margin-right: 6px;
             font-size: 9px;
-        }
-
-        .remarks {
-            margin-top: 7px;
-        }
-
-        .signature-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-
-        .signature-table td {
-            width: 50%;
-            padding: 8px;
-            vertical-align: bottom;
-        }
-
-        .no-print {
-            margin-bottom: 15px;
+            line-height: 9px;
             text-align: center;
+            font-style: normal;
+            flex: none;
         }
 
-        .print-button {
-            padding: 8px 18px;
-            cursor: pointer;
+        .comments { margin-top: 4px; }
+        .comments ul { margin: 2px 0 0; padding-left: 8px; list-style: none; }
+        .comments li { font-style: italic; margin: 1.5px 0; }
+        .comments li::before { content: "\2022\00a0"; }
+
+        .calibrated { margin-top: 6px; }
+        .calibrated .h {
+            font-weight: bold;
+            font-style: italic;
+            text-decoration: underline;
         }
+        .calibrated .name { font-style: italic; margin-top: 2px; }
+        .calibrated .role { font-style: italic; font-size: 9px; }
+
+        /* ---------- FOOTER ---------- */
+        .footer {
+            margin-top: auto;
+            border-top: 2px solid #d4191f;
+            padding-top: 6px;
+            display: grid;
+            grid-template-columns: 62% 38%;
+            font-size: 9.5px;
+        }
+        .footer .left { display: flex; gap: 8px; align-items: flex-start; }
+        .wika {
+            border: 2px solid #1f3f8f;
+            color: #1f3f8f;
+            font-weight: 900;
+            font-size: 17px;
+            padding: 0 8px;
+            letter-spacing: 1px;
+            flex: none;
+        }
+        .footer .lab-name {
+            font-weight: bold;
+            color: #1f3f8f;
+            font-size: 13px;
+        }
+        .footer .small { font-size: 8px; margin-top: 3px; }
+        .footer .right table td { padding: 0 3px 1px 0; vertical-align: top; }
+        .footer .right td:first-child { width: 36px; }
+
+        /* ---------- PRINT BUTTON ---------- */
+        .no-print { margin-bottom: 15px; text-align: center; }
+        .print-button { padding: 8px 18px; cursor: pointer; }
 
         @media print {
-            .no-print {
-                display: none !important;
-            }
-
+            .no-print { display: none !important; }
             body {
                 background: #fff;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
         }
     </style>
@@ -158,314 +304,156 @@
 <body>
 
 <div class="no-print">
-    <button
-        type="button"
-        class="print-button"
-        onclick="window.print()"
-    >
+    <button type="button" class="print-button" onclick="window.print()">
         Print Certificate
     </button>
 </div>
 
 <div class="certificate">
 
-    <!-- HEADER -->
-    <div class="header">
+   <!-- ================= HEADER ================= -->
+<div class="header">
 
-        <div class="logo-box">
-            ACCUTECH
-        </div>
+    <div class="hdr-left">
+        <img class="eiac-logo" src="{% static 'img/EIAC-logo.png' %}" alt="EIAC Logo">
+        <div class="lab-code">LB-CAL-016</div>
+    </div>
 
+    <div class="hdr-mid">
+        <div class="cert-title">CERTIFICATE OF CALIBRATION</div>
+        <table>
+            <tr>
+                <td class="lbl">Certificate No.:</td>
+                <td class="lbl">Date of Issue</td>
+            </tr>
+            <tr>
+                <td>{{ certificate.number }}</td>
+                <td>{% if certificate.issue_date %}{{ certificate.issue_date|date:"d-M-Y" }}{% else %}—{% endif %}</td>
+            </tr>
+            <tr>
+                <td class="lbl">Date of Calibration</td>
+                <td class="lbl">Approved Signatory</td>
+            </tr>
+            <tr>
+                <td>{% if certificate.calibration_date %}{{ certificate.calibration_date|date:"d-M-Y" }}{% else %}—{% endif %}</td>
+                <td>{{ certificate.approved_signatory|default:"—" }}</td>
+            </tr>
+            <tr>
+                <td class="lbl">Re-Calibration Date</td>
+                <td class="lbl">Signature</td>
+            </tr>
+            <tr>
+                <td>{% if certificate.re_calibration_date %}{{ certificate.re_calibration_date|date:"d-M-Y" }}{% else %}—{% endif %}</td>
+                <td>&nbsp;</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="hdr-right">
+        <img class="accu-logo" src="{% static 'img/Accutech-logo.png' %}" alt="Accutech Logo">
+        <div class="company">ACCUTECH AUTOMATION FZCO</div>
+        <div class="tagline">Control &amp; Instrumentation Solutions</div>
+    </div>
+
+</div>
+
+    <!-- ================= CUSTOMER DETAILS ================= -->
+    <div class="band" style="margin-top:3px;">Customer Details</div>
+    <div class="customer">
+        <table>
+            <tr>
+                <td class="k">Customer Name</td>
+                <td class="c">:</td>
+                <td class="v">{{ certificate.job.customer_name }}</td>
+                <td class="k2">Po No.</td>
+                <td class="c">:</td>
+                <td class="v2">{{ certificate.job.po_number }}</td>
+            </tr>
+            <tr>
+                <td class="k">Address</td>
+                <td class="c">:</td>
+                <td class="v" style="font-weight:normal;">{{ certificate.job.customer_address }}</td>
+                <td class="k2">Job No.</td>
+                <td class="c">:</td>
+                <td class="v2">{{ certificate.job.job_number }}</td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- ================= DEVICE + WORKING STANDARD ================= -->
+    <div class="two-col">
         <div>
-            <div class="certificate-title">
-                CERTIFICATE OF CALIBRATION
+            <div class="band">Specification of the Device Under Calibration</div>
+            <div class="kv">
+                <table>
+                    <tr><td class="k">Instrument</td><td class="c">:</td><td>{{ certificate.line_item.instrument|default:"—" }}</td></tr>
+                    <tr><td class="k">Manufacturer</td><td class="c">:</td><td>{{ certificate.device_manufacturer }}</td></tr>
+                    <tr><td class="k">Model</td><td class="c">:</td><td>{{ certificate.line_item.model|default:"—" }}</td></tr>
+                    <tr><td class="k">Serial Number</td><td class="c">:</td><td>{{ certificate.device_serial }}</td></tr>
+                    <tr><td class="k">Tag Number</td><td class="c">:</td><td>{{ certificate.device_tag_number }}</td></tr>
+                    <tr>
+                        <td class="k">Range</td><td class="c">:</td>
+                        <td>
+                            {% if certificate.line_item %}
+                                {{ certificate.line_item.range_from }} to {{ certificate.line_item.range_to }} {{ certificate.line_item.unit }}
+                            {% else %}—{% endif %}
+                        </td>
+                    </tr>
+                    <tr><td class="k">Resolution</td><td class="c">:</td><td>{{ certificate.device_resolution }}</td></tr>
+                    <tr><td class="k">Accuracy ( ± )</td><td class="c">:</td><td>{{ certificate.device_accuracy }}%FSD</td></tr>
+                    {% if certificate.device_ratio %}
+                    <!-- <tr><td class="k">Ratio</td><td class="c">:</td><td>{{ certificate.device_ratio }}</td></tr> -->
+                    {% endif %}
+                </table>
             </div>
-
-            <table class="certificate-meta">
-                <tr>
-                    <td><strong>Certificate No.</strong></td>
-                    <td>{{ certificate.number }}</td>
-                </tr>
-
-                <tr>
-                    <td><strong>Date of Issue</strong></td>
-                    <td>
-                        {% if certificate.issue_date %}
-                            {{ certificate.issue_date|date:"d-M-Y" }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                </tr>
-
-                <tr>
-                    <td><strong>Date of Calibration</strong></td>
-                    <td>
-                        {% if certificate.calibration_date %}
-                            {{ certificate.calibration_date|date:"d-M-Y" }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                </tr>
-
-                <tr>
-                    <td><strong>Date of Re-Calibration</strong></td>
-                    <td>
-                        {% if certificate.re_calibration_date %}
-                            {{ certificate.re_calibration_date|date:"d-M-Y" }}
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-                </tr>
-
-                <tr>
-                    <td><strong>Approved Signatory</strong></td>
-                    <td>{{ certificate.approved_signatory|default:"—" }}</td>
-                </tr>
-            </table>
         </div>
 
-        <div class="logo-box">
-            CALIBRATION
+        <div class="ws">
+            <div class="band">Working Standard (WS)</div>
+            <div class="kv">
+                <table>
+                    <tr><td class="n">1.</td><td class="k">Name</td><td class="c">:</td><td>{{ certificate.working_standard_name }}</td></tr>
+                    <tr><td class="n"></td><td class="k">Serial Number</td><td class="c">:</td><td>{{ certificate.working_standard_serial }}</td></tr>
+                    <tr><td class="n"></td><td class="k">Certificate No.</td><td class="c">:</td><td>{{ certificate.working_standard_certificate_no }}</td></tr>
+                </table>
+            </div>
         </div>
-
     </div>
 
-
-    <!-- CUSTOMER DETAILS -->
-
-    <div class="section-title">
-        Customer Details
+    <!-- ================= CALIBRATION CONDITIONS ================= -->
+    <div class="conditions">
+        <div class="band">Calibration Conditions</div>
+        <div class="cond-ref">
+            Reference Procedure No. : {{ certificate.reference_procedure }}
+        </div>
+        <table class="cond-row">
+            <tr>
+                <td>Lab. Temperature <span class="u">:</span>&nbsp; {{ certificate.lab_temperature }} °C</td>
+                <td>Lab. Humidity <span class="u">:</span>&nbsp; {{ certificate.lab_humidity }} %rH</td>
+                <td>Amb. Pressure <span class="u">:</span>&nbsp; {{ certificate.ambient_pressure }} hPa</td>
+            </tr>
+        </table>
+        <div class="cond-var">
+            Temperature variation during calibration did not exceed ±{{ certificate.temperature_variation|default:"±1 °C" }}°C
+        </div>
     </div>
 
-    <table class="details-table">
-        <tr>
-            <td class="label">Customer Name</td>
-            <td>
-                {{ certificate.job.customer_name }}
-            </td>
-
-            <td class="label">PO No.</td>
-            <td>
-                {{ certificate.job.po_number }}
-            </td>
-        </tr>
-
-        <tr>
-            <td class="label">Address</td>
-            <td colspan="3">
-                {{ certificate.job.customer_address }}
-            </td>
-        </tr>
-
-        <tr>
-            <td class="label">Job No.</td>
-            <td colspan="3">
-                {{ certificate.job.job_number }}
-            </td>
-        </tr>
-    </table>
-
-
-    <!-- DEVICE UNDER CALIBRATION -->
-
-    <div class="section-title">
-        Specification of the Device Under Calibration
-    </div>
-
-    <table class="details-table">
-        <tr>
-            <td class="label">Instrument</td>
-            <td>
-                {{ certificate.line_item.instrument|default:"—" }}
-            </td>
-
-            <td class="label">Manufacturer</td>
-            <td>
-                {{ certificate.device_manufacturer }}
-            </td>
-        </tr>
-
-        <tr>
-            <td class="label">Model</td>
-            <td>
-                {{ certificate.line_item.model|default:"—" }}
-            </td>
-
-            <td class="label">Serial Number</td>
-            <td>
-                {{ certificate.device_serial }}
-            </td>
-        </tr>
-
-        <tr>
-           <!-- <td class="label">Range</td>
-            <td>
-                {% if certificate.line_item %}
-                    {{ certificate.line_item.range_from }} - {{ certificate.line_item.range_to }}
-                    {{ certificate.line_item.unit }}
-                {% else %}
-                    —
-                {% endif %}
-            </td> -->
-            <td class="label">Tag Number</td>
-            <td>
-                {{ certificate.device_tag_number }}
-            </td>
-
-            <td class="label">Resolution</td>
-            <td>
-                {{ certificate.device_resolution }}
-            </td>
-        </tr>
-
-        <tr>
-            <!-- <td class="label">Accuracy</td>
-            <td>
-                {{ certificate.device_accuracy }}
-            </td> -->
-            <td class="label">Range</td>
-            <td>
-                {% if certificate.line_item %}
-                    {{ certificate.line_item.range_from }} - {{ certificate.line_item.range_to }}
-                    {{ certificate.line_item.unit }}
-                {% else %}
-                    —
-                {% endif %}
-            </td>
-            <td class="label">Accuracy</td>
-            <td>
-                {{ certificate.device_accuracy }}
-            </td>
-        </tr>
-        <tr>
-            <td class="label">Ratio</td>
-            <td>
-                {{ certificate.device_ratio }}
-            </td>
-        </tr>
-    </table>
-
-
-    <!-- WORKING STANDARD -->
-
-    <div class="section-title">
-        Working Standard (WS)
-    </div>
-
-    <table class="details-table">
-        <tr>
-            <td class="label">Name</td>
-            <td>
-                {{ certificate.working_standard_name }}
-            </td>
-
-            <td class="label">Serial Number</td>
-            <td>
-                {{ certificate.working_standard_serial }}
-            </td>
-        </tr>
-
-        <tr>
-            <td class="label">Certificate No.</td>
-            <td colspan="3">
-                {{ certificate.working_standard_certificate_no }}
-            </td>
-        </tr>
-    </table>
-
-
-    <!-- CALIBRATION CONDITIONS -->
-
-    <div class="section-title">
-        Calibration Conditions
-    </div>
-
-    <table class="details-table">
-        <tr>
-            <td class="label">Lab Temperature</td>
-            <td>
-                {{ certificate.lab_temperature }}
-            </td>
-
-            <td class="label">Lab Humidity</td>
-            <td>
-                {{ certificate.lab_humidity }}
-            </td>
-        </tr>
-
-        <tr>
-            <td class="label">Ambient Pressure</td>
-            <td>
-                {{ certificate.ambient_pressure }}
-            </td>
-
-            <td class="label">Reference Procedure</td>
-            <td>
-                {{ certificate.reference_procedure }}
-            </td>
-        </tr>
-
-        <tr>
-            <td class="label">Temperature Variation</td>
-            <td colspan="3">
-                {{ certificate.temperature_variation }}
-            </td>
-        </tr>
-    </table>
-
-
-    <!-- RESULTS -->
-
-    <div class="section-title">
-        Calibration Results
-    </div>
+    <!-- ================= RESULTS ================= -->
+    <div class="res-title"><span>Calibration Results:</span></div>
 
     <table class="results-table">
-
         <thead>
             <tr>
-                <th>
-                    Applied Pressure (A)<br>
-                    bar
-                </th>
-
-                <th>
-                    Upward<br>
-                    (M1)
-                </th>
-
-                <th>
-                    Downward<br>
-                    (M2)
-                </th>
-
-                <th>
-                    Mean Value<br>
-                    (M)
-                </th>
-
-                <th>
-                    Deviation<br>
-                    (A-M)
-                </th>
-
-                <th>
-                    Expanded Uncertainty<br>
-                    (% FS)
-                </th>
-
-                <th>
-                    Remarks<br>
-                    Pass / Fail
-                </th>
+                <th>Applied Pressure (A)<br>bar</th>
+                <th>Upward<br>(M1)</th>
+                <th>Downward<br>(M2)</th>
+                <th>Mean Value<br>(M)</th>
+                <th>Deviation<br>(A-M)</th>
+                <th>Expanded Uncertainty<br>(±) % FS</th>
+                <th>Remarks<br>Pass / Fail</th>
             </tr>
         </thead>
-
         <tbody>
-
             {% for result in results %}
             <tr>
                 <td>{{ result.applied_value }}</td>
@@ -477,43 +465,66 @@
                 <td>{{ result.remarks }}</td>
             </tr>
             {% empty %}
-            <tr>
-                <td colspan="7">
-                    No calibration results entered.
-                </td>
-            </tr>
+            <tr><td colspan="7">No calibration results entered.</td></tr>
             {% endfor %}
-
         </tbody>
-
     </table>
 
-
-    <!-- CONDITIONS / NOTES -->
+    <div class="uncert-note">
+        Note: The Reported Expanded Uncertainty is based upon standard Uncertainty multiplied by a coverage factor k=2, providing a coverage probability of approximately 95%. The uncertainty evaluation has been carried out in accordance with DKD-R6-1 (Seq. C) guidelines &amp; EIAC requirements.
+    </div>
 
     {% if certificate.condition_notes %}
     <div class="remarks">
-        <strong>Remarks:</strong>
-        {{ certificate.condition_notes }}
+        <b>Remarks:</b> {{ certificate.condition_notes }}
     </div>
     {% endif %}
 
+    <div class="note-head">Note:</div>
+    <div class="checks">
+        <!-- Tick state is static here (matches the sample). Wire to model fields if they vary per certificate. -->
+        <div><span class="box">&#10003;</span> Instrument is received in good condition.</div>
+        <div><span class="box"></span> Instrument is adjusted and post adjustment values are reported.</div>
+        <div><span class="box">&#10003;</span> No adjustment is carried out and measurements in this certificate are as received figures.</div>
+    </div>
 
-    <!-- SIGNATURE -->
+    <div class="comments">
+        <div class="note-head" style="margin-top:0;">Comment(s)</div>
+        <ul>
+            <li>This certificate is issued in accordance with the requirements of ISO 17025:2017.</li>
+            <li>It provides traceability of measurements to recognized national / international Standards and to units of measurements realized to recognized national / international standard laboratories.</li>
+            <li>The Calibration results refers only to the measured value and does not carry any implication regarding the long term stability of the instrument.</li>
+            <li>This certificate may not be reproduced, except in full, without prior written approval of the AAF laboratory.</li>
+            <li>The calibration interval given in this certificate is provided as per the recommendation of customer.</li>
+            <li>Laboratory have implemented Decision Rule based on Manufacturer Specification.</li>
+        </ul>
+    </div>
 
-    <table class="signature-table">
-        <tr>
-            <td>
-                <strong>Calibrated By:</strong><br><br>
-                {{ certificate.calibrated_by }}
-            </td>
+    <div class="calibrated">
+        <div class="h">Calibrated by:</div>
+        <div class="name">{{ certificate.calibrated_by }}</div>
+        <div class="role">Calibration Engineer</div>
+    </div>
 
-            <td>
-                <strong>Approved Signatory:</strong><br><br>
-                {{ certificate.approved_signatory }}
-            </td>
-        </tr>
-    </table>
+    <!-- ================= FOOTER ================= -->
+    <div class="footer">
+        <div class="left">
+            <div class="wika">WIKA</div>
+            <div>
+                <div class="lab-name">Authorized Calibration Laboratory &amp; Service Centre</div>
+                <div>PO Box: 30495, Warehouse G-1, HIGHBAY, Dubai Silicon Oasis, Dubai-UAE</div>
+                <div class="small">Form No.: FRM/AAF/40, Rev. No.: 05, Effect Date: 07-Aug-2024</div>
+            </div>
+        </div>
+        <div class="right">
+            <table>
+                <tr><td>Tel</td><td>: + 971 4 3207944 / 2241464</td></tr>
+                <tr><td>Fax</td><td>: + 971 4 3207933 / 2276062</td></tr>
+                <tr><td>E-Mail</td><td>: calibration@accutech.ae</td></tr>
+                <tr><td>Website</td><td>: www.accutech.ae</td></tr>
+            </table>
+        </div>
+    </div>
 
 </div>
 
@@ -525,3 +536,4 @@
 
 </body>
 </html>
+

@@ -158,7 +158,6 @@
                         <th>Calibration Validity</th>
                         <th>Reference Procedure</th>
                         <th></th>
-
                     </tr>
 
                 </thead>
@@ -302,33 +301,15 @@
 
                         </td>
 
-
-                        <!-- <td>
-
-                            {% if form.instance.pk %}
-
-                                {{ form.DELETE }}
-
-                            {% else %}
-
-                                <button
-                                    type="button"
-                                    class="remove-row">
-                                    ✕
-                                </button>
-
-                            {% endif %}
-
-                        </td> -->
-                        <td>
+                       <td class="remove-cell">
 
                             {% if form.instance.pk %}
 
-                                {{ form.DELETE }}
+                                {{ form.DELETE.as_hidden }}
 
                                 <button
                                     type="button"
-                                    class="remove-existing-row"
+                                    class="remove-row remove-existing-row"
                                     title="Remove instrument">
                                     ✕
                                 </button>
@@ -612,7 +593,7 @@
 </table>
 
 
-<script>
+<!-- <script>
 
 function makeAdder(
     addBtnId,
@@ -776,6 +757,153 @@ body.querySelectorAll('.line-item-row, .document-row')
         }
     });
 
+</script> -->
+
+<script>
+
+function makeAdder(
+    addBtnId,
+    bodyId,
+    emptyRowId,
+    prefix
+) {
+    const addBtn = document.getElementById(addBtnId);
+    const body = document.getElementById(bodyId);
+
+    const totalForms = document.querySelector(
+        `#id_${prefix}-TOTAL_FORMS`
+    );
+
+    if (!addBtn || !body || !totalForms) {
+        return;
+    }
+
+
+    /* =========================================================
+       ADD NEW ROW
+       ========================================================= */
+
+    addBtn.addEventListener('click', function () {
+
+        const idx = parseInt(totalForms.value, 10);
+
+        const template = document
+            .getElementById(emptyRowId)
+            .querySelector('tr');
+
+        const newRow = template.cloneNode(true);
+
+        newRow.innerHTML = newRow.innerHTML.replace(
+            /__prefix__/g,
+            idx
+        );
+
+        body.appendChild(newRow);
+
+        totalForms.value = idx + 1;
+
+
+        /* -----------------------------------------------------
+           Remove newly added row
+           ----------------------------------------------------- */
+
+        const removeBtn =
+            newRow.querySelector('.remove-row');
+
+        if (removeBtn) {
+
+            removeBtn.addEventListener('click', function () {
+
+                newRow.remove();
+
+            });
+
+        }
+
+    });
+
+
+    /* =========================================================
+       EXISTING ROWS
+       ========================================================= */
+
+    body.querySelectorAll('.line-item-row, .document-row')
+        .forEach(function (row) {
+
+            const removeBtn =
+                row.querySelector('.remove-row');
+
+            if (!removeBtn) {
+                return;
+            }
+
+
+            removeBtn.addEventListener('click', function () {
+
+                /*
+                 * Check whether this is an existing
+                 * database record.
+                 */
+
+                const deleteCheckbox =
+                    row.querySelector(
+                        'input[type="checkbox"][name$="-DELETE"]'
+                    );
+
+
+                if (deleteCheckbox) {
+
+                    /*
+                     * Existing database record:
+                     * mark it for deletion and hide it.
+                     */
+
+                    deleteCheckbox.checked = true;
+
+                    row.style.display = 'none';
+
+                } else {
+
+                    /*
+                     * New unsaved row:
+                     * remove it from the DOM.
+                     */
+
+                    row.remove();
+
+                }
+
+            });
+
+        });
+
+}
+
+
+/* =============================================================
+   LINE ITEMS
+   ============================================================= */
+
+makeAdder(
+    'add-row',
+    'line-items-body',
+    'line-item-empty-row',
+    'line_items'
+);
+
+
+/* =============================================================
+   DOCUMENTS
+   ============================================================= */
+
+makeAdder(
+    'add-doc',
+    'documents-body',
+    'document-empty-row',
+    'documents'
+);
+
 </script>
+
 
 {% endblock %}
