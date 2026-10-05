@@ -520,6 +520,9 @@ document.addEventListener("DOMContentLoaded", function () {
     const accuracyInput =
         document.querySelector('input[name="device_accuracy"]');
 
+    const accuracyUnitSelect =
+        document.querySelector('[name="device_accuracy_unit"]');
+
     const fullScaleInput =
         document.querySelector('input[name="uuc_full_scale"]');
 
@@ -582,6 +585,23 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     });
 
+    // NEW – Accuracy number
+    accuracyInput?.addEventListener("input", function () {
+        document
+            .querySelectorAll("#results-body .result-row")
+            .forEach(function (row) {
+                calculateResultRow(row);
+            });
+    });
+
+    // NEW – Accuracy unit (FS / Rdg)
+    accuracyUnitSelect?.addEventListener("change", function () {
+        document
+            .querySelectorAll("#results-body .result-row")
+            .forEach(function (row) {
+                calculateResultRow(row);
+            });
+    });
 
     // =========================================================
     // CONVERT VALUE TO BAR
@@ -733,11 +753,6 @@ document.addEventListener("DOMContentLoaded", function () {
     // CALCULATE CMC ONCE
     // =========================================================
 
-    // const cmc = getCMC(
-    //     fullScale,
-    //     unit,
-    //     media
-    // );
     function getSetupValues() {
         return {
             accuracy: toNumber(accuracyInput?.value),
@@ -964,17 +979,88 @@ document.addEventListener("DOMContentLoaded", function () {
                 );
         }
 
+        // // =========================================================
+        // // PASS / FAIL CRITERIA
+        // //
+        // // Tolerance = UUC Full Scale × Accuracy / 100
+        // //
+        // // M1 difference = A - M1
+        // // M2 difference = A - M2
+        // //
+        // // PASS when BOTH:
+        // // |A - M1| <= Tolerance
+        // // |A - M2| <= Tolerance
+        // // =========================================================
+
+        // let passFail = "—";
+
+        // if (
+        //     Number.isFinite(fullScale) &&
+        //     Number.isFinite(accuracy) &&
+        //     Number.isFinite(applied) &&
+        //     Number.isFinite(m1) &&
+        //     Number.isFinite(m2)
+        // ) {
+
+        //     // ---------------------------------------------------------
+        //     // TOLERANCE
+        //     // Example:
+        //     // Full Scale = 40 bar
+        //     // Accuracy = 1%
+        //     //
+        //     // Tolerance = 40 × 1 / 100 = 0.4 bar
+        //     // ---------------------------------------------------------
+
+        //     const tolerance =
+        //         Math.abs(fullScale) *
+        //         (Math.abs(accuracy) / 100);
+
+
+        //     // ---------------------------------------------------------
+        //     // DIFFERENCE BETWEEN APPLIED PRESSURE AND M1
+        //     // ---------------------------------------------------------
+
+        //     const m1Difference =
+        //         applied - m1;
+
+
+        //     // ---------------------------------------------------------
+        //     // DIFFERENCE BETWEEN APPLIED PRESSURE AND M2
+        //     // ---------------------------------------------------------
+
+        //     const m2Difference =
+        //         applied - m2;
+
+
+        //     // ---------------------------------------------------------
+        //     // CHECK M1
+        //     // ---------------------------------------------------------
+
+        //     const m1Pass =
+        //         Math.abs(m1Difference) <= tolerance;
+
+
+        //     // ---------------------------------------------------------
+        //     // CHECK M2
+        //     // ---------------------------------------------------------
+
+        //     const m2Pass =
+        //         Math.abs(m2Difference) <= tolerance;
+
+
+        //     // ---------------------------------------------------------
+        //     // OVERALL RESULT
+        //     //
+        //     // Both M1 and M2 must be within tolerance.
+        //     // ---------------------------------------------------------
+
+        //     passFail =
+        //         m1Pass && m2Pass
+        //             ? "PASS"
+        //             : "FAIL";
+        // }
         // =========================================================
         // PASS / FAIL CRITERIA
-        //
-        // Tolerance = UUC Full Scale × Accuracy / 100
-        //
-        // M1 difference = A - M1
-        // M2 difference = A - M2
-        //
-        // PASS when BOTH:
-        // |A - M1| <= Tolerance
-        // |A - M2| <= Tolerance
         // =========================================================
 
         let passFail = "—";
@@ -986,63 +1072,27 @@ document.addEventListener("DOMContentLoaded", function () {
             Number.isFinite(m1) &&
             Number.isFinite(m2)
         ) {
+            const accuracyUnit = (
+                document.querySelector('[name="device_accuracy_unit"]')?.value || "FS"
+            ).trim();
 
-            // ---------------------------------------------------------
-            // TOLERANCE
-            // Example:
-            // Full Scale = 40 bar
-            // Accuracy = 1%
-            //
-            // Tolerance = 40 × 1 / 100 = 0.4 bar
-            // ---------------------------------------------------------
+            let tolerance;
 
-            const tolerance =
-                Math.abs(fullScale) *
-                (Math.abs(accuracy) / 100);
+            if (accuracyUnit === "Rdg") {
+                // % of reading → use this row’s Applied Pressure
+                tolerance = Math.abs(applied) * (Math.abs(accuracy) / 100);
+            } else {
+                // % FS (default)
+                tolerance = Math.abs(fullScale) * (Math.abs(accuracy) / 100);
+            }
 
+            const m1Difference = applied - m1;
+            const m2Difference = applied - m2;
 
-            // ---------------------------------------------------------
-            // DIFFERENCE BETWEEN APPLIED PRESSURE AND M1
-            // ---------------------------------------------------------
+            const m1Pass = Math.abs(m1Difference) <= tolerance;
+            const m2Pass = Math.abs(m2Difference) <= tolerance;
 
-            const m1Difference =
-                applied - m1;
-
-
-            // ---------------------------------------------------------
-            // DIFFERENCE BETWEEN APPLIED PRESSURE AND M2
-            // ---------------------------------------------------------
-
-            const m2Difference =
-                applied - m2;
-
-
-            // ---------------------------------------------------------
-            // CHECK M1
-            // ---------------------------------------------------------
-
-            const m1Pass =
-                Math.abs(m1Difference) <= tolerance;
-
-
-            // ---------------------------------------------------------
-            // CHECK M2
-            // ---------------------------------------------------------
-
-            const m2Pass =
-                Math.abs(m2Difference) <= tolerance;
-
-
-            // ---------------------------------------------------------
-            // OVERALL RESULT
-            //
-            // Both M1 and M2 must be within tolerance.
-            // ---------------------------------------------------------
-
-            passFail =
-                m1Pass && m2Pass
-                    ? "PASS"
-                    : "FAIL";
+            passFail = m1Pass && m2Pass ? "PASS" : "FAIL";
         }
 
 
