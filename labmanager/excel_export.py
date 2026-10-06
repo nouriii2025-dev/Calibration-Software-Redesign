@@ -4,6 +4,9 @@ from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from django.conf import settings
 from django.http import FileResponse
 from decimal import Decimal
+import os
+import win32com.client
+from datetime import date, datetime
 
 
 EXCEL_HEADERS = [
@@ -221,72 +224,307 @@ def certificate_to_excel_row(certificate):
     ]
 
 
+
 # def export_certificate_to_excel(certificate):
-#     """
-#     Add/update one certificate in the master Excel workbook.
-
-#     The certificate number is used as the unique key.
-#     Therefore exporting the same certificate multiple times
-#     does not create duplicate rows.
-#     """
-
 #     excel_file = get_excel_file()
 
-#     workbook = load_workbook(excel_file)
+#     try:
+#         import win32com.client
+#         import pythoncom
+
+#         pythoncom.CoInitialize()
+
+#         excel_app = None
+#         open_workbook = None
+
+#         try:
+#             # -------------------------------------------------
+#             # Connect to an already running Excel instance
+#             # -------------------------------------------------
+
+#             excel_app = win32com.client.GetActiveObject(
+#                 "Excel.Application"
+#             )
+
+#             # -------------------------------------------------
+#             # Find our master workbook
+#             # -------------------------------------------------
+
+#             target_path = os.path.normcase(
+#                 os.path.abspath(str(excel_file))
+#             )
+
+#             for workbook in excel_app.Workbooks:
+
+#                 try:
+#                     workbook_path = os.path.normcase(
+#                         os.path.abspath(
+#                             str(workbook.FullName)
+#                         )
+#                     )
+
+#                     if workbook_path == target_path:
+#                         open_workbook = workbook
+#                         break
+
+#                 except Exception:
+#                     continue
+
+#             # -------------------------------------------------
+#             # MASTER WORKBOOK IS OPEN
+#             # -------------------------------------------------
+
+#             if open_workbook is not None:
+
+#                 worksheet = None
+
+#                 # Find Calibration Register sheet
+#                 for sheet in open_workbook.Worksheets:
+
+#                     if sheet.Name == "Calibration Register":
+#                         worksheet = sheet
+#                         break
+
+#                 # Create sheet if missing
+#                 if worksheet is None:
+
+#                     worksheet = open_workbook.Worksheets.Add(
+#                         After=open_workbook.Worksheets(
+#                             open_workbook.Worksheets.Count
+#                         )
+#                     )
+
+#                     worksheet.Name = "Calibration Register"
+
+#                     # Create headers
+#                     for column, header in enumerate(
+#                         EXCEL_HEADERS,
+#                         start=1
+#                     ):
+#                         worksheet.Cells(
+#                             1,
+#                             column
+#                         ).Value = header
+
+#                 # -------------------------------------------------
+#                 # Find Cert. No column
+#                 # -------------------------------------------------
+
+#                 certificate_column = (
+#                     EXCEL_HEADERS.index("Cert. No") + 1
+#                 )
+
+#                 # Last used row
+#                 last_row = worksheet.Cells(
+#                     worksheet.Rows.Count,
+#                     certificate_column
+#                 ).End(-4162).Row  # xlUp
+
+#                 # Make sure we don't treat the header as data
+#                 if last_row < 1:
+#                     last_row = 1
+
+#                 existing_row = None
+
+#                 # -------------------------------------------------
+#                 # Search existing certificate
+#                 # -------------------------------------------------
+
+#                 for row in range(
+#                     2,
+#                     last_row + 1
+#                 ):
+
+#                     cell_value = worksheet.Cells(
+#                         row,
+#                         certificate_column
+#                     ).Value
+
+#                     if cell_value is not None:
+
+#                         if (
+#                             str(cell_value).strip()
+#                             ==
+#                             str(certificate.number).strip()
+#                         ):
+#                             existing_row = row
+#                             break
+
+#                 # -------------------------------------------------
+#                 # New row or existing row
+#                 # -------------------------------------------------
+
+#                 if existing_row is None:
+
+#                     row_number = max(
+#                         last_row + 1,
+#                         2
+#                     )
+
+#                 else:
+
+#                     row_number = existing_row
+
+#                 # -------------------------------------------------
+#                 # Get certificate data
+#                 # -------------------------------------------------
+
+#                 values = certificate_to_excel_row(
+#                     certificate
+#                 )
+
+
+#                 for column, value in enumerate(
+#                     values,
+#                     start=1
+#                 ):
+
+#                     cell = worksheet.Cells(
+#                         row_number,
+#                         column
+#                     )
+
+#                     if value is None:
+#                         cell.Value = ""
+
+#                     elif isinstance(value, Decimal):
+#                         cell.Value = float(value)
+
+#                     elif isinstance(value, date):
+#                         # Excel COM requires a datetime object,
+#                         # not a Python datetime.date object.
+#                         cell.Value = datetime(
+#                             value.year,
+#                             value.month,
+#                             value.day
+#                         )
+
+#                     else:
+#                         cell.Value = value
+
+#                 # -------------------------------------------------
+#                 # Date formatting
+#                 # -------------------------------------------------
+
+#                 date_headers = {
+#                     "Cal. Date",
+#                     "Due Date",
+#                     "Issue Date",
+#                 }
+
+#                 for column, header in enumerate(
+#                     EXCEL_HEADERS,
+#                     start=1
+#                 ):
+
+#                     if header in date_headers:
+
+#                         worksheet.Cells(
+#                             row_number,
+#                             column
+#                         ).NumberFormat = "dd/mm/yyyy"
+
+#                 # -------------------------------------------------
+#                 # Save the OPEN workbook
+#                 # -------------------------------------------------
+
+#                 open_workbook.Save()
+
+#                 return excel_file
+
+#         finally:
+
+#             try:
+#                 pythoncom.CoUninitialize()
+#             except Exception:
+#                 pass
+
+#     except Exception as excel_error:
+
+#         error_text = str(excel_error).lower()
+
+#         excel_not_running = (
+#             "getactiveobject" in error_text
+#             or "operation unavailable" in error_text
+#             or "class not registered" in error_text
+#             or "invalid class string" in error_text
+#         )
+
+#         if not excel_not_running:
+
+#             raise
+
+
+#     workbook = load_workbook(
+#         excel_file
+#     )
 
 #     if "Calibration Register" in workbook.sheetnames:
-#         worksheet = workbook["Calibration Register"]
+
+#         worksheet = workbook[
+#             "Calibration Register"
+#         ]
+
 #     else:
+
 #         worksheet = workbook.create_sheet(
 #             "Calibration Register"
 #         )
-
-#     # ---------------------------------------------------------
-#     # Make sure headers exist
-#     # ---------------------------------------------------------
-
-#     if worksheet.max_row == 0:
 
 #         for column, header in enumerate(
 #             EXCEL_HEADERS,
 #             start=1
 #         ):
-#             worksheet.cell(
+
+#             cell = worksheet.cell(
 #                 row=1,
 #                 column=column,
 #                 value=header
 #             )
 
+#             cell.font = Font(
+#                 bold=True,
+#                 name="Arial"
+#             )
+
+#             cell.alignment = Alignment(
+#                 horizontal="center",
+#                 vertical="center"
+#             )
+
+#         worksheet.freeze_panes = "A2"
+
 #     # ---------------------------------------------------------
-#     # Find existing certificate row
+#     # Find certificate
 #     # ---------------------------------------------------------
 
-#     certificate_column = EXCEL_HEADERS.index(
-#         "Cert. No"
-#     ) + 1
+#     certificate_column = (
+#         EXCEL_HEADERS.index("Cert. No") + 1
+#     )
 
 #     existing_row = None
 
-#     for row in range(2, worksheet.max_row + 1):
+#     for row in range(
+#         2,
+#         worksheet.max_row + 1
+#     ):
 
 #         cell_value = worksheet.cell(
 #             row=row,
 #             column=certificate_column
 #         ).value
 
-#         if str(cell_value).strip() == str(
-#             certificate.number
-#         ).strip():
+#         if (
+#             str(cell_value).strip()
+#             ==
+#             str(certificate.number).strip()
+#         ):
 
 #             existing_row = row
 #             break
 
 #     # ---------------------------------------------------------
-#     # If certificate already exists:
-#     # UPDATE it.
-#     #
-#     # Otherwise:
-#     # ADD a new row.
+#     # New or existing row
 #     # ---------------------------------------------------------
 
 #     if existing_row is None:
@@ -296,6 +534,10 @@ def certificate_to_excel_row(certificate):
 #     else:
 
 #         row_number = existing_row
+
+#     # ---------------------------------------------------------
+#     # Write certificate
+#     # ---------------------------------------------------------
 
 #     values = certificate_to_excel_row(
 #         certificate
@@ -339,7 +581,7 @@ def certificate_to_excel_row(certificate):
 #             ).number_format = "dd/mm/yyyy"
 
 #     # ---------------------------------------------------------
-#     # Add borders to data row
+#     # Borders
 #     # ---------------------------------------------------------
 
 #     thin_border = Border(
@@ -360,182 +602,348 @@ def certificate_to_excel_row(certificate):
 #         ).border = thin_border
 
 #     # ---------------------------------------------------------
-#     # Save master workbook
+#     # Save
 #     # ---------------------------------------------------------
 
-#     workbook.save(excel_file)
+#     workbook.save(
+#         excel_file
+#     )
 
 #     return excel_file
 
+
 def export_certificate_to_excel(certificate):
     """
-    Add or update a certificate in the single master Excel workbook.
+    Export/update one certificate in the master Excel workbook.
 
-    All certificates are stored in:
-        MEDIA_ROOT/exports/calibration_register.xlsx
-
-    If the certificate already exists, its row is updated.
-    If it does not exist, a new row is appended.
+    Behaviour:
+    - Creates the master workbook if it does not exist.
+    - Opens the workbook automatically in Microsoft Excel.
+    - If the workbook is already open, updates that same open workbook.
+    - If Excel/workbook was closed, opens the existing workbook again.
+    - Re-exporting the same certificate updates its existing row.
+    - Does NOT download a file.
     """
 
     excel_file = get_excel_file()
 
-    # ---------------------------------------------------------
-    # Open the existing master workbook
-    # ---------------------------------------------------------
+    import pythoncom
+    import win32com.client
 
-    workbook = load_workbook(excel_file)
+    pythoncom.CoInitialize()
 
-    # ---------------------------------------------------------
-    # Get the Calibration Register sheet
-    # ---------------------------------------------------------
+    try:
+        target_path = os.path.normcase(
+            os.path.abspath(str(excel_file))
+        )
 
-    if "Calibration Register" in workbook.sheetnames:
-        worksheet = workbook["Calibration Register"]
-    else:
-        worksheet = workbook.create_sheet("Calibration Register")
+        excel_app = None
+        open_workbook = None
 
-        for column, header in enumerate(EXCEL_HEADERS, start=1):
-            cell = worksheet.cell(
-                row=1,
-                column=column,
-                value=header
+        # =========================================================
+        # 1. Try to connect to an already running Excel
+        # =========================================================
+
+        try:
+            excel_app = win32com.client.GetActiveObject(
+                "Excel.Application"
+            )
+        except Exception:
+            excel_app = None
+
+        # =========================================================
+        # 2. If Excel is already running, find our workbook
+        # =========================================================
+
+        if excel_app is not None:
+
+            for workbook in excel_app.Workbooks:
+
+                try:
+                    workbook_path = os.path.normcase(
+                        os.path.abspath(
+                            str(workbook.FullName)
+                        )
+                    )
+
+                    if workbook_path == target_path:
+                        open_workbook = workbook
+                        break
+
+                except Exception:
+                    continue
+
+        # =========================================================
+        # 3. If workbook is NOT open, open it automatically
+        # =========================================================
+
+        if open_workbook is None:
+
+            # If Excel itself is not running, start it.
+            if excel_app is None:
+
+                excel_app = win32com.client.Dispatch(
+                    "Excel.Application"
+                )
+
+            # Make Excel visible to the technician.
+            excel_app.Visible = True
+
+            # Open the existing master workbook.
+            open_workbook = excel_app.Workbooks.Open(
+                target_path
             )
 
-            cell.font = Font(
-                bold=True,
-                name="Arial"
+        # =========================================================
+        # 4. Find Calibration Register worksheet
+        # =========================================================
+
+        worksheet = None
+
+        for sheet in open_workbook.Worksheets:
+
+            try:
+                if sheet.Name == "Calibration Register":
+                    worksheet = sheet
+                    break
+            except Exception:
+                continue
+
+        # =========================================================
+        # 5. Create worksheet if it doesn't exist
+        # =========================================================
+
+        if worksheet is None:
+
+            worksheet = open_workbook.Worksheets.Add(
+                After=open_workbook.Worksheets(
+                    open_workbook.Worksheets.Count
+                )
             )
 
-            cell.alignment = Alignment(
-                horizontal="center",
-                vertical="center"
-            )
+            worksheet.Name = "Calibration Register"
 
-            cell.fill = PatternFill(
-                fill_type="solid",
-                fgColor="9DC3E6"
-            )
+            # -----------------------------------------------------
+            # Headers
+            # -----------------------------------------------------
 
-        worksheet.freeze_panes = "A2"
+            for column, header in enumerate(
+                EXCEL_HEADERS,
+                start=1
+            ):
 
-    # ---------------------------------------------------------
-    # Make sure headers exist
-    # ---------------------------------------------------------
+                cell = worksheet.Cells(
+                    1,
+                    column
+                )
 
-    for column, header in enumerate(EXCEL_HEADERS, start=1):
+                cell.Value = header
+                cell.Font.Bold = True
+                cell.Font.Name = "Arial"
+                cell.HorizontalAlignment = -4108  # xlCenter
+                cell.VerticalAlignment = -4108    # xlCenter
 
-        if worksheet.cell(row=1, column=column).value != header:
-            worksheet.cell(
-                row=1,
-                column=column,
-                value=header
-            )
+            worksheet.Application.ActiveWindow.SplitRow = 1
+            worksheet.Application.ActiveWindow.FreezePanes = True
 
-            worksheet.cell(
-                row=1,
-                column=column
-            ).font = Font(
-                bold=True,
-                name="Arial"
-            )
+        # =========================================================
+        # 6. Make sure headers exist
+        # =========================================================
 
-    # ---------------------------------------------------------
-    # Certificate number is our unique key
-    # ---------------------------------------------------------
-
-    certificate_column = EXCEL_HEADERS.index("Cert. No") + 1
-
-    existing_row = None
-
-    for row in range(2, worksheet.max_row + 1):
-
-        existing_certificate = worksheet.cell(
-            row=row,
-            column=certificate_column
-        ).value
-
-        if (
-            existing_certificate is not None
-            and str(existing_certificate).strip()
-            == str(certificate.number).strip()
+        for column, header in enumerate(
+            EXCEL_HEADERS,
+            start=1
         ):
-            existing_row = row
-            break
 
-    # ---------------------------------------------------------
-    # Existing certificate -> update
-    # New certificate -> append
-    # ---------------------------------------------------------
+            current_header = worksheet.Cells(
+                1,
+                column
+            ).Value
 
-    if existing_row is not None:
-        row_number = existing_row
-    else:
-        row_number = worksheet.max_row + 1
+            if current_header is None:
+                worksheet.Cells(
+                    1,
+                    column
+                ).Value = header
 
-    # ---------------------------------------------------------
-    # Convert certificate to Excel data
-    # ---------------------------------------------------------
+        # =========================================================
+        # 7. Find "Cert. No" column
+        # =========================================================
 
-    values = certificate_to_excel_row(certificate)
-
-    # ---------------------------------------------------------
-    # Write the certificate data
-    # ---------------------------------------------------------
-
-    for column, value in enumerate(values, start=1):
-
-        cell = worksheet.cell(
-            row=row_number,
-            column=column,
-            value=value
+        certificate_column = (
+            EXCEL_HEADERS.index("Cert. No") + 1
         )
 
-        cell.alignment = Alignment(
-            vertical="center"
+        # =========================================================
+        # 8. Find the last used row
+        # =========================================================
+
+        last_row = worksheet.Cells(
+            worksheet.Rows.Count,
+            certificate_column
+        ).End(-4162).Row  # xlUp
+
+        if last_row < 1:
+            last_row = 1
+
+        # =========================================================
+        # 9. Find existing certificate
+        # =========================================================
+
+        existing_row = None
+
+        for row in range(
+            2,
+            last_row + 1
+        ):
+
+            cell_value = worksheet.Cells(
+                row,
+                certificate_column
+            ).Value
+
+            if cell_value is None:
+                continue
+
+            if (
+                str(cell_value).strip()
+                ==
+                str(certificate.number).strip()
+            ):
+                existing_row = row
+                break
+
+        # =========================================================
+        # 10. Determine row to write
+        # =========================================================
+
+        if existing_row is None:
+
+            row_number = max(
+                last_row + 1,
+                2
+            )
+
+        else:
+
+            row_number = existing_row
+
+        # =========================================================
+        # 11. Get certificate data
+        # =========================================================
+
+        values = certificate_to_excel_row(
+            certificate
         )
 
-    # ---------------------------------------------------------
-    # Date formatting
-    # ---------------------------------------------------------
+        # =========================================================
+        # 12. Write certificate data
+        # =========================================================
 
-    date_headers = {
-        "Cal. Date",
-        "Due Date",
-        "Issue Date",
-    }
+        for column, value in enumerate(
+            values,
+            start=1
+        ):
 
-    for column, header in enumerate(EXCEL_HEADERS, start=1):
+            cell = worksheet.Cells(
+                row_number,
+                column
+            )
 
-        if header in date_headers:
+            if value is None:
 
-            worksheet.cell(
-                row=row_number,
-                column=column
-            ).number_format = "dd/mm/yyyy"
+                cell.Value = ""
 
-    # ---------------------------------------------------------
-    # Borders
-    # ---------------------------------------------------------
+            elif isinstance(value, Decimal):
 
-    thin_border = Border(
-        left=Side(style="thin"),
-        right=Side(style="thin"),
-        top=Side(style="thin"),
-        bottom=Side(style="thin"),
-    )
+                cell.Value = float(value)
 
-    for column in range(1, len(EXCEL_HEADERS) + 1):
+            elif isinstance(value, datetime):
 
-        worksheet.cell(
-            row=row_number,
-            column=column
-        ).border = thin_border
+                cell.Value = value
 
-    # ---------------------------------------------------------
-    # Save the SAME workbook
-    # ---------------------------------------------------------
+            elif isinstance(value, date):
 
-    workbook.save(excel_file)
+                cell.Value = datetime(
+                    value.year,
+                    value.month,
+                    value.day
+                )
 
-    return excel_file
+            else:
+
+                cell.Value = value
+
+            # Basic formatting
+            cell.Font.Name = "Arial"
+            cell.VerticalAlignment = -4108  # xlCenter
+
+        # =========================================================
+        # 13. Date formatting
+        # =========================================================
+
+        date_headers = {
+            "Cal. Date",
+            "Due Date",
+            "Issue Date",
+        }
+
+        for column, header in enumerate(
+            EXCEL_HEADERS,
+            start=1
+        ):
+
+            if header in date_headers:
+
+                worksheet.Cells(
+                    row_number,
+                    column
+                ).NumberFormat = "dd/mm/yyyy"
+
+        # =========================================================
+        # 14. Add borders to the row
+        # =========================================================
+
+        for column in range(
+            1,
+            len(EXCEL_HEADERS) + 1
+        ):
+
+            cell = worksheet.Cells(
+                row_number,
+                column
+            )
+
+            cell.Borders.LineStyle = 1
+
+        # =========================================================
+        # 15. Save the SAME workbook
+        # =========================================================
+
+        open_workbook.Save()
+
+        # =========================================================
+        # 16. Make Excel visible and bring it to front
+        # =========================================================
+
+        excel_app.Visible = True
+
+        try:
+            excel_app.WindowState = -4143  # xlNormal
+        except Exception:
+            pass
+
+        try:
+            open_workbook.Activate()
+            worksheet.Activate()
+        except Exception:
+            pass
+
+        return excel_file
+
+    finally:
+
+        try:
+            pythoncom.CoUninitialize()
+        except Exception:
+            pass
