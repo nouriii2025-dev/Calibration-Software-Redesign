@@ -25,13 +25,64 @@ class SignUpForm(UserCreationForm):
         return user
 
 
+# class JobForm(forms.ModelForm):
+#     class Meta:
+#         model = Job
+#         fields = ["customer_name", "customer_address", "po_number", "quantity", "committed_date"]
+#         widgets = {
+#             "customer_address": forms.Textarea(attrs={"rows": 2}),
+#             "committed_date": forms.DateInput(attrs={"type": "date"}),
+#         }
 class JobForm(forms.ModelForm):
+
     class Meta:
         model = Job
-        fields = ["customer_name", "customer_address", "po_number", "quantity", "committed_date"]
+
+        fields = [
+            "scope_of_work",
+            "customer_name",
+            "customer_address",
+            "telephone_number",
+            "fax_number",
+            "location",
+            "po_number",
+            "quantity",
+            "committed_date",
+        ]
+
         widgets = {
-            "customer_address": forms.Textarea(attrs={"rows": 2}),
-            "committed_date": forms.DateInput(attrs={"type": "date"}),
+            "scope_of_work": forms.TextInput(
+                attrs={
+                    "placeholder": "Enter scope of work"
+                }
+            ),
+
+            "customer_address": forms.Textarea(
+                attrs={
+                    "rows": 2,
+                    "placeholder": "Customer address"
+                }
+            ),
+
+            "telephone_number": forms.TextInput(
+                attrs={
+                    "placeholder": "Telephone number"
+                }
+            ),
+
+            "fax_number": forms.TextInput(
+                attrs={
+                    "placeholder": "Fax number"
+                }
+            ),
+
+            "location": forms.Select(),
+
+            "committed_date": forms.DateInput(
+                attrs={
+                    "type": "date"
+                }
+            ),
         }
 
 

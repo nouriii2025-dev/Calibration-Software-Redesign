@@ -11,6 +11,7 @@ from .forms import *
 from .models import *
 from datetime import timedelta
 import calendar
+from .excel_export import export_certificate_to_excel
 
 
 def is_lab_head(user):
@@ -1344,4 +1345,70 @@ def save_uncertainty(request, pk):
     return redirect(
         "certificate_detail",
         pk=certificate.pk
+    )
+
+
+@login_required
+def export_certificate_excel(request, pk):
+
+    certificate = get_object_or_404(
+        Certificate.objects.select_related(
+            "job",
+            "line_item",
+            "line_item__instrument",
+            "line_item__assigned_to",
+        ).prefetch_related("results"),
+        pk=pk,
+    )
+
+    # ---------------------------------------------------------
+    # Permission
+    # ---------------------------------------------------------
+
+    if not _can_edit_certificate(
+        request.user,
+        certificate
+    ):
+        messages.error(
+            request,
+            "You do not have access to this certificate."
+        )
+
+        return redirect("dashboard")
+
+    # ---------------------------------------------------------
+    # Only completed certificates can be exported
+    # ---------------------------------------------------------
+
+    if not certificate.is_complete:
+
+        messages.error(
+            request,
+            f"Certificate {certificate.number} is not completed yet."
+        )
+
+        return redirect(
+            "job_detail",
+            pk=certificate.job_id
+        )
+
+    # ---------------------------------------------------------
+    # ADD / UPDATE CERTIFICATE IN THE MASTER EXCEL FILE
+    # ---------------------------------------------------------
+
+    export_certificate_to_excel(certificate)
+
+    # ---------------------------------------------------------
+    # DO NOT DOWNLOAD THE FILE
+    # Just return to Job Detail
+    # ---------------------------------------------------------
+
+    messages.success(
+        request,
+        f"Certificate {certificate.number} exported to the master calibration register."
+    )
+
+    return redirect(
+        "job_detail",
+        pk=certificate.job_id
     )

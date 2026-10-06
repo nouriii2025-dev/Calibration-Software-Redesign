@@ -23,6 +23,7 @@
                 <input type="text" value="{{ next_job_number }}" disabled>
                 <p class="muted">Generated automatically (YYMM + sequence)</p>
             </div>
+
             <div>
                 <label>PO Number</label>
                 {{ job_form.po_number }}
@@ -32,6 +33,32 @@
         {{ job_form.customer_name }}
         <label>Customer Address</label>
         {{ job_form.customer_address }}
+        <div class="row">
+
+        <div>
+            <label>Telephone Number</label>
+            {{ job_form.telephone_number }}
+        </div>
+
+        <div>
+            <label>Fax Number</label>
+            {{ job_form.fax_number }}
+        </div>
+
+    </div>
+    <div class="row">
+
+        <div>
+            <label>Location</label>
+            {{ job_form.location }}
+        </div>
+
+        <div>
+            <label>Scope of Work</label>
+            {{ job_form.scope_of_work }}
+        </div>
+
+    </div>
         <div class="row">
             <div>
                 <label>Quantity (total certificates for this job)</label>

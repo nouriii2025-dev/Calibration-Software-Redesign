@@ -37,7 +37,7 @@
     <!-- JOB DETAILS -->
     <!-- ========================================================= -->
 
-    <div class="card">
+    <!-- <div class="card">
 
         <h2>Job Details</h2>
 
@@ -111,7 +111,102 @@
 
         {% endfor %}
 
+    </div> -->
+    <div class="card">
+
+    <h2>Job Details</h2>
+
+    <div class="row">
+
+        <div>
+            <label>Job Number</label>
+
+            <input
+                type="text"
+                value="{{ job.job_number }}"
+                disabled
+            >
+
+            <p class="muted">
+                Job number cannot be changed.
+            </p>
+        </div>
+
     </div>
+
+    <div class="row">
+
+        <div>
+            <label>Customer Name</label>
+            {{ job_form.customer_name }}
+        </div>
+
+        <div>
+            <label>PO Number</label>
+            {{ job_form.po_number }}
+        </div>
+
+    </div>
+
+    <label>Customer Address</label>
+    {{ job_form.customer_address }}
+
+    <div class="row">
+
+        <div>
+            <label>Telephone Number</label>
+            {{ job_form.telephone_number }}
+        </div>
+
+        <div>
+            <label>Fax Number</label>
+            {{ job_form.fax_number }}
+        </div>
+
+    </div>
+
+    <div class="row">
+
+        <div>
+            <label>Location</label>
+            {{ job_form.location }}
+        </div>
+
+        <div>
+            <label>Scope of Work</label>
+            {{ job_form.scope_of_work }}
+        </div>
+
+    </div>
+
+    <div class="row">
+
+        <div>
+            <label>Quantity</label>
+
+            {{ job_form.quantity }}
+
+            <p class="muted">
+                Changing quantity may add or release certificate slots.
+            </p>
+        </div>
+
+        <div>
+            <label>Committed Date</label>
+            {{ job_form.committed_date }}
+        </div>
+
+    </div>
+
+    {% for field in job_form %}
+        {% for error in field.errors %}
+            <p class="form-error">
+                {{ field.label }}: {{ error }}
+            </p>
+        {% endfor %}
+    {% endfor %}
+
+</div>
 
 
     <!-- ========================================================= -->

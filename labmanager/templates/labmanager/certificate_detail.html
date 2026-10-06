@@ -6,6 +6,9 @@
         <div class="breadcrumb"><a href="{% url 'dashboard' %}">Dashboard</a> / <a href="{% url 'job_detail' certificate.job_id %}">Job {{ certificate.job.job_number }}</a> / Certificate {{ certificate.number }}</div>
         <h1>Certificate {{ certificate.number }}</h1>
         <p class="page-sub">
+            Datasheet: <strong>{{ certificate.datasheet_number }}</strong>
+        </p>
+        <p class="page-sub">
             {{ certificate.job.customer_name }}
             {% if certificate.line_item %}&middot; {{ certificate.line_item.instrument }} &middot; assigned to {{ certificate.line_item.assigned_to }}{% endif %}
         </p>
@@ -51,10 +54,6 @@
                 <label>Resolution</label>
                 {{ cert_form.device_resolution }}
             </div>
-            <!-- <div>
-                <label>Accuracy</label>
-                {{ cert_form.device_accuracy }}
-            </div> -->
             <div>
                 <label>Accuracy</label>
                 <div style="display:flex; gap:0.4rem; align-items:center;">

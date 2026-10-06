@@ -44,6 +44,11 @@ class Instrument(models.Model):
         return self.name
 
 
+LOCATION_CHOICES = [
+    ("Lab", "Lab"),
+    ("On-site", "On-site"),     
+]
+
 class Job(models.Model):
     """A single calibration job created by a Lab Head. job_number and the
     pool of certificates are generated automatically from `quantity`."""
@@ -51,6 +56,26 @@ class Job(models.Model):
     job_number = models.CharField(max_length=20, unique=True, editable=False)
     customer_name = models.CharField(max_length=200)
     customer_address = models.TextField(blank=True)
+    telephone_number = models.CharField(
+        max_length=50,
+        blank=True
+    )
+
+    fax_number = models.CharField(
+        max_length=50,
+        blank=True
+    )
+
+    location = models.CharField(
+        max_length=200,
+        blank=True,
+        choices=LOCATION_CHOICES
+    )
+
+    scope_of_work = models.CharField(
+        max_length=500,
+        blank=True
+    )
     po_number = models.CharField(max_length=100)
     quantity = models.PositiveIntegerField(help_text="Total number of certificates for this job")
     committed_date = models.DateField(null=True, blank=True)
@@ -100,6 +125,13 @@ class Certificate(models.Model):
 
     job = models.ForeignKey(Job, on_delete=models.CASCADE, related_name="certificates")
     number = models.CharField(max_length=20, unique=True, editable=False)
+    datasheet_number = models.CharField(
+        max_length=30,
+        unique=True,
+        editable=False,
+        blank=True,
+        null=True
+    )
     line_item = models.ForeignKey(
         "JobLineItem",
         on_delete=models.SET_NULL,
@@ -202,9 +234,58 @@ class Certificate(models.Model):
         seq = int(last.split("-")[1]) + 1 if last else 116444
         return f"AF-{seq}"
 
+    @staticmethod
+    def generate_datasheet_number():
+        """
+        Generate a unique sequential datasheet number.
+
+        Examples:
+        DS-0001
+        DS-0002
+        DS-0003
+        """
+
+        last = (
+            Certificate.objects
+            .filter(datasheet_number__startswith="DS-")
+            .order_by("-id")
+            .first()
+        )
+
+        if last and last.datasheet_number:
+            try:
+                seq = int(last.datasheet_number.split("-")[-1]) + 1
+            except (ValueError, IndexError):
+                seq = 1
+        else:
+            seq = 1
+
+        return f"DS-{seq:04d}"
+
+    # def save(self, *args, **kwargs):
+    #     if not self.number:
+    #         self.number = self.generate_number()
+
+    #     # ---------------------------------------------------------
+    #     # Automatically derive UUC full scale from Job Line Item
+    #     # ---------------------------------------------------------
+    #     if self.line_item_id:
+    #         if self.line_item.range_to is not None:
+    #             self.uuc_full_scale = self.line_item.range_to
+
+    #         if self.line_item.unit:
+    #             self.uuc_unit = self.line_item.unit
+
+    #         if self.line_item.job_id:
+    #             pass
+
+    #     super().save(*args, **kwargs)
     def save(self, *args, **kwargs):
         if not self.number:
             self.number = self.generate_number()
+
+        if not self.datasheet_number:
+            self.datasheet_number = self.generate_datasheet_number()
 
         # ---------------------------------------------------------
         # Automatically derive UUC full scale from Job Line Item
@@ -215,9 +296,6 @@ class Certificate(models.Model):
 
             if self.line_item.unit:
                 self.uuc_unit = self.line_item.unit
-
-            if self.line_item.job_id:
-                pass
 
         super().save(*args, **kwargs)
 

@@ -84,7 +84,23 @@
                 <td>{{ cert.line_item.instrument|default:"—" }}</td>
                 <td>{{ cert.line_item.assigned_to|default:"—" }}</td>
                 <td><span class="pill {% if cert.is_complete %}pill-success{% else %}pill-warning{% endif %}">{{ cert.is_complete|yesno:"Complete,Pending" }}</span></td>
-                <td style="text-align:right;"><a class="btn secondary small" href="{% url 'certificate_detail' cert.pk %}">Open</a></td>
+                <!-- <td style="text-align:right;"><a class="btn secondary small" href="{% url 'certificate_detail' cert.pk %}">Open</a></td> -->
+                 <td style="text-align:right; white-space:nowrap;">
+                    <a class="btn secondary small"
+                    href="{% url 'certificate_detail' cert.pk %}">
+                        Open
+                    </a>
+
+                    {% if cert.is_complete %}
+                        <a
+                            class="btn small"
+                            href="{% url 'export_certificate_excel' cert.pk %}"
+                            title="Export certificate to Excel"
+                        >
+                            ⇩ Excel
+                        </a>
+                    {% endif %}
+                </td>
             </tr>
             {% empty %}
             <tr><td colspan="5" class="muted">No certificates yet.</td></tr>
