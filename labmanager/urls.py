@@ -19,9 +19,7 @@ urlpatterns = [
     path("uncertainty/<int:pk>/",views.uncertainty,name="uncertainty",),
     path("certificate/<int:pk>/save-uncertainty/",views.save_uncertainty,name="save_uncertainty",),
     path("jobs/<int:pk>/edit/",views.job_edit,name="job_edit",),
-    path(
-    "certificate/<int:pk>/export-excel/",
-    views.export_certificate_excel,
-    name="export_certificate_excel",
-),
+    path("certificate/<int:pk>/export-excel/",views.export_certificate_excel,name="export_certificate_excel",),
+    path("notifications/<int:pk>/open/", views.notification_open, name="notification_open"),
+    path("notifications/mark-all-read/", views.notifications_mark_all_read, name="notifications_mark_all_read"),
 ]

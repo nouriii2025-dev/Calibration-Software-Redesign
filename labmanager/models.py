@@ -222,11 +222,67 @@ class Certificate(models.Model):
     calibrated_by = models.CharField(max_length=150, blank=True)
     approved_signatory = models.CharField(max_length=150, blank=True)
 
+    class ApprovalStatus(models.TextChoices):
+        DRAFT = "draft", "Draft"
+        PENDING = "pending", "Pending Approval"
+        APPROVED = "approved", "Approved"
+
+    approval_status = models.CharField(max_length=20, choices=ApprovalStatus.choices, default=ApprovalStatus.DRAFT)
+    submitted_at = models.DateTimeField(null=True, blank=True)
+    approved_at = models.DateTimeField(null=True, blank=True)
+    approved_by = models.ForeignKey("User", on_delete=models.SET_NULL, null=True, blank=True, related_name="approved_certificates")
+
     class Meta:
         ordering = ["number"]
 
     def __str__(self):
         return self.number
+
+    @property
+    def is_draft(self): return self.approval_status == self.ApprovalStatus.DRAFT
+    @property
+    def is_pending_approval(self): return self.approval_status == self.ApprovalStatus.PENDING
+    @property
+    def is_approved(self): return self.approval_status == self.ApprovalStatus.APPROVED
+    @property
+    def assigned_technician(self): return self.line_item.assigned_to if self.line_item else None
+
+    def submit_for_approval(self, user):
+        if not self.is_draft:
+            return False, "This certificate has already been sent for approval."
+        if not self.is_complete:
+            return False, "Complete the calibration date, 'Calibrated By' and at least one result row before sending for approval."
+        self.approval_status = self.ApprovalStatus.PENDING
+        self.submitted_at = timezone.now()
+        self.save(update_fields=["approval_status", "submitted_at"])
+        for head in User.objects.filter(role=User.Role.LAB_HEAD, is_active=True):
+            Notification.send(head, f"Certificate {self.number} (Job {self.job.job_number}) was sent for approval by {user}.", certificate=self)
+        return True, f"Certificate {self.number} sent to the Lab Head for approval."
+
+    def approve(self, user):
+        if self.is_approved:
+            return False, "This certificate is already approved."
+        if not self.is_complete:
+            return False, "This certificate is incomplete and cannot be approved yet."
+        self.approval_status = self.ApprovalStatus.APPROVED
+        self.approved_at = timezone.now()
+        self.approved_by = user
+        self.save(update_fields=["approval_status", "approved_at", "approved_by"])
+        tech = self.assigned_technician
+        if tech and tech.pk != user.pk:
+            Notification.send(tech, f"Certificate {self.number} (Job {self.job.job_number}) was approved by {user}. You can now print and export it.", certificate=self)
+        return True, f"Certificate {self.number} approved."
+
+    def return_to_technician(self, user):   # optional extra, see note at the end
+        if not self.is_pending_approval:
+            return False, "Only certificates pending approval can be returned."
+        self.approval_status = self.ApprovalStatus.DRAFT
+        self.submitted_at = None
+        self.save(update_fields=["approval_status", "submitted_at"])
+        tech = self.assigned_technician
+        if tech and tech.pk != user.pk:
+            Notification.send(tech, f"Certificate {self.number} (Job {self.job.job_number}) was returned by {user} for corrections.", certificate=self)
+        return True, f"Certificate {self.number} returned to the technician."
 
     @staticmethod
     def generate_number():
@@ -245,41 +301,22 @@ class Certificate(models.Model):
         DS-0003
         """
 
-        last = (
+        highest = 0
+
+        for value in (
             Certificate.objects
             .filter(datasheet_number__startswith="DS-")
-            .order_by("-id")
-            .first()
-        )
-
-        if last and last.datasheet_number:
+            .values_list("datasheet_number", flat=True)
+        ):
             try:
-                seq = int(last.datasheet_number.split("-")[-1]) + 1
+                highest = max(highest, int(value.split("-")[-1]))
             except (ValueError, IndexError):
-                seq = 1
-        else:
-            seq = 1
+                continue
+
+        seq = highest + 1
 
         return f"DS-{seq:04d}"
 
-    # def save(self, *args, **kwargs):
-    #     if not self.number:
-    #         self.number = self.generate_number()
-
-    #     # ---------------------------------------------------------
-    #     # Automatically derive UUC full scale from Job Line Item
-    #     # ---------------------------------------------------------
-    #     if self.line_item_id:
-    #         if self.line_item.range_to is not None:
-    #             self.uuc_full_scale = self.line_item.range_to
-
-    #         if self.line_item.unit:
-    #             self.uuc_unit = self.line_item.unit
-
-    #         if self.line_item.job_id:
-    #             pass
-
-    #     super().save(*args, **kwargs)
     def save(self, *args, **kwargs):
         if not self.number:
             self.number = self.generate_number()
@@ -585,3 +622,28 @@ class JobDocument(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Notification(models.Model):
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
+    message = models.CharField(max_length=255)
+    certificate = models.ForeignKey(Certificate, on_delete=models.CASCADE, null=True, blank=True, related_name="notifications")
+    job = models.ForeignKey(Job, on_delete=models.CASCADE, null=True, blank=True, related_name="notifications")
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at", "-id"]
+
+    @classmethod
+    def send(cls, recipient, message, certificate=None, job=None):
+        return cls.objects.create(recipient=recipient, message=message[:255], certificate=certificate, job=job)
+
+    @property
+    def target_url(self):
+        from django.urls import reverse
+        if self.certificate_id:
+            return reverse("certificate_detail", args=[self.certificate_id])
+        if self.job_id:
+            return reverse("job_detail", args=[self.job_id])
+        return reverse("dashboard")

@@ -38,6 +38,29 @@
                             <span class="nav-user-name">{{ user.username }}</span>
                             <span class="nav-user-role">{% if user.is_lab_head %}Lab Head{% else %}Lab Technician{% endif %}</span>
                         </span>
+                        <details class="notif" id="notif">
+                            <summary class="notif-btn" aria-label="Notifications" title="Notifications">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                {% if unread_notification_count %}<span class="notif-badge">{% if unread_notification_count > 9 %}9+{% else %}{{ unread_notification_count }}{% endif %}</span>{% endif %}
+                            </summary>
+                            <div class="notif-panel">
+                                <div class="notif-head">
+                                    <strong>Notifications</strong>
+                                    {% if unread_notification_count %}
+                                    <form method="post" action="{% url 'notifications_mark_all_read' %}">
+                                        {% csrf_token %}<button type="submit" class="notif-link">Mark all read</button>
+                                    </form>
+                                    {% endif %}
+                                </div>
+                                {% for n in recent_notifications %}
+                                    <a class="notif-item {% if not n.is_read %}unread{% endif %}" href="{% url 'notification_open' n.pk %}">
+                                        <span>{{ n.message }}</span><small>{{ n.created_at|timesince }} ago</small>
+                                    </a>
+                                {% empty %}
+                                    <p class="notif-empty">No notifications yet.</p>
+                                {% endfor %}
+                            </div>
+                        </details>
                         <form method="post" action="{% url 'logout' %}" style="display: inline;">
                             {% csrf_token %}
                             <button type="submit" class="logout-btn">Log out</button>
@@ -63,5 +86,11 @@
         {% endif %}
         {% block content %}{% endblock %}
     </main>
+    <script>
+        document.addEventListener("click", function (e) {
+            var n = document.getElementById("notif");
+            if (n && n.open && !n.contains(e.target)) { n.open = false; }
+        });
+    </script>
 </body>
 </html>

@@ -12,10 +12,23 @@ from .models import *
 from datetime import timedelta
 import calendar
 from .excel_export import export_certificate_to_excel
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 
 def is_lab_head(user):
     return user.is_authenticated and user.is_lab_head
+
+def _notify_new_assignments(job, line_items, previous=None):
+    previous = previous or {}
+    totals = {}
+    for li in line_items:
+        if previous.get(li.pk) == li.assigned_to_id:
+            continue
+        entry = totals.setdefault(li.assigned_to_id, [li.assigned_to, 0])
+        entry[1] += li.quantity or 0
+    for technician, quantity in totals.values():
+        Notification.send(technician, f"Job {job.job_number}: {quantity} instrument(s) assigned to you.", job=job)
 
 
 # ---------- Auth ----------
@@ -130,6 +143,7 @@ def job_create(request):
                 for li in line_items:
                     li.assign_certificates()
                 doc_formset.save()
+                _notify_new_assignments(job, line_items)
 
             messages.success(request, f"Job {job.job_number} created with {job.quantity} certificates.")
             return redirect("job_detail", pk=job.pk)
@@ -200,7 +214,10 @@ def job_edit(request, pk):
                 # -------------------------------------------------
 
                 line_item_formset.instance = job
+                # line_items = line_item_formset.save()
+                previous_assignments = {li.pk: li.assigned_to_id for li in job.line_items.all()}
                 line_items = line_item_formset.save()
+                _notify_new_assignments(job, line_items, previous_assignments)
 
                 # -------------------------------------------------
                 # SAVE DOCUMENTS
@@ -396,11 +413,6 @@ def job_edit(request, pk):
 def job_detail(request, pk):
     job = get_object_or_404(Job, pk=pk)
 
-    # ---------------------------------------------------------
-    # Lab Head can see the complete job.
-    # Technician can only access a job where at least one
-    # line item is assigned to them.
-    # ---------------------------------------------------------
     if request.user.is_lab_head:
         visible_line_items = job.line_items.all()
         visible_certificates = job.certificates.all()
@@ -440,6 +452,11 @@ def _can_edit_certificate(user, certificate):
     if user.is_lab_head:
         return True
     return bool(certificate.line_item and certificate.line_item.assigned_to_id == user.id)
+
+def _is_certificate_locked(user, certificate):
+    if certificate.is_approved:
+        return True
+    return user.is_technician and certificate.is_pending_approval
 
 
 def add_months(base_date, months):
@@ -510,6 +527,20 @@ def certificate_detail(request, pk):
             "You do not have access to that certificate."
         )
         return redirect("dashboard")
+
+    locked = _is_certificate_locked(request.user, certificate)
+
+    if request.method == "POST":
+        posted = request.POST
+        if locked:
+            messages.error(request, f"Certificate {certificate.number} is locked and can't be edited.")
+            return redirect("certificate_detail", pk=certificate.pk)
+        if ("approve" in posted or "return_to_technician" in posted) and not request.user.is_lab_head:
+            messages.error(request, "Only the Lab Head can approve certificates.")
+            return redirect("certificate_detail", pk=certificate.pk)
+        if "send_for_approval" in posted and not request.user.is_technician:
+            messages.error(request, "Only the assigned technician can send for approval.")
+            return redirect("certificate_detail", pk=certificate.pk)
 
     ResultFormSet = get_calibration_result_formset(certificate)
 
@@ -678,11 +709,36 @@ def certificate_detail(request, pk):
                 )
 
             # Save and Print
-            if "save_and_print" in request.POST:
-                return redirect(
-                    "certificate_print",
-                    pk=certificate.pk
-                )
+            # if "save_and_print" in request.POST:
+            #     return redirect(
+            #         "certificate_print",
+            #         pk=certificate.pk
+            #     )
+
+            # # Normal Save
+            # messages.success(
+            #     request,
+            #     f"Certificate {certificate.number} updated."
+            # )
+
+            # return redirect(
+            #     "job_detail",
+            #     pk=certificate.job_id
+            # )
+            if "send_for_approval" in request.POST:
+                ok, text = certificate.submit_for_approval(request.user)
+            elif "approve" in request.POST:
+                ok, text = certificate.approve(request.user)
+            elif "return_to_technician" in request.POST:
+                ok, text = certificate.return_to_technician(request.user)
+            else:
+                ok = text = None
+
+            if text:
+                (messages.success if ok else messages.error)(request, text)
+                if ok:
+                    return redirect("job_detail", pk=certificate.job_id)
+                return redirect("certificate_detail", pk=certificate.pk)
 
             # Normal Save
             messages.success(
@@ -716,6 +772,7 @@ def certificate_detail(request, pk):
             "certificate": certificate,
             "cert_form": cert_form,
             "result_formset": result_formset,
+            "locked": locked,
         },
     )
 
@@ -738,6 +795,10 @@ def certificate_print(request, pk):
             "You do not have access to that certificate."
         )
         return redirect("dashboard")
+
+    if not certificate.is_approved:
+        messages.error(request, f"Certificate {certificate.number} must be approved before it can be printed.")
+        return redirect("certificate_detail", pk=certificate.pk)
 
     return render(
         request,
@@ -1227,61 +1288,6 @@ def uncertainty(request, pk):
     )
 
 
-# @login_required
-# def save_uncertainty(request, pk):
-#     certificate = get_object_or_404(
-#         Certificate.objects.prefetch_related("results"),
-#         pk=pk,
-#     )
-
-#     if not _can_edit_certificate(request.user, certificate):
-#         messages.error(
-#             request,
-#             "You do not have access to this certificate."
-#         )
-#         return redirect("dashboard")
-
-#     if request.method != "POST":
-#         return redirect("uncertainty", pk=certificate.pk)
-
-#     # Receive calculated maximum uncertainty values from JavaScript
-#     uncertainty_values = request.POST.getlist("uncertainty[]")
-
-#     results = list(
-#         certificate.results.all().order_by("id")
-#     )
-
-#     for result, value in zip(results, uncertainty_values):
-
-#         value = (value or "").strip()
-
-#         if value:
-#             try:
-#                 decimal_value = Decimal(value)
-
-#                 result.uncertainty = str(
-#                     decimal_value.quantize(
-#                         Decimal("0.0001"),
-#                         rounding=ROUND_HALF_UP
-#                     )
-#                 )
-
-#             except Exception:
-#                 result.uncertainty = ""
-#         else:
-#             result.uncertainty = ""
-
-#         result.save(update_fields=["uncertainty"])
-
-#     messages.success(
-#         request,
-#         "Expanded uncertainty values updated successfully."
-#     )
-
-#     return redirect(
-#         "certificate_detail",
-#         pk=certificate.pk
-#     )
 @login_required
 def save_uncertainty(request, pk):
 
@@ -1304,6 +1310,10 @@ def save_uncertainty(request, pk):
             "uncertainty",
             pk=certificate.pk
         )
+
+    if _is_certificate_locked(request.user, certificate):
+        messages.error(request, f"Certificate {certificate.number} is locked and can't be edited.")
+        return redirect("certificate_detail", pk=certificate.pk)
 
     results = list(
         certificate.results.all().order_by("id")
@@ -1376,6 +1386,10 @@ def export_certificate_excel(request, pk):
 
         return redirect("dashboard")
 
+    if not certificate.is_approved:
+        messages.error(request, f"Certificate {certificate.number} must be approved before it can be exported.")
+        return redirect("certificate_detail", pk=certificate.pk)
+
     # ---------------------------------------------------------
     # Only completed certificates can be exported
     # ---------------------------------------------------------
@@ -1412,3 +1426,21 @@ def export_certificate_excel(request, pk):
         "job_detail",
         pk=certificate.job_id
     )
+
+@login_required
+def notification_open(request, pk):
+    notification = get_object_or_404(Notification, pk=pk, recipient=request.user)
+    if not notification.is_read:
+        notification.is_read = True
+        notification.save(update_fields=["is_read"])
+    return redirect(notification.target_url)
+
+
+@login_required
+@require_POST
+def notifications_mark_all_read(request):
+    Notification.objects.filter(recipient=request.user, is_read=False).update(is_read=True)
+    next_url = request.META.get("HTTP_REFERER", "")
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
+    return redirect("dashboard")

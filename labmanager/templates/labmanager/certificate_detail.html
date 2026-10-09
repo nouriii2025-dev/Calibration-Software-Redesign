@@ -4,7 +4,10 @@
 <div class="page-header">
     <div>
         <div class="breadcrumb"><a href="{% url 'dashboard' %}">Dashboard</a> / <a href="{% url 'job_detail' certificate.job_id %}">Job {{ certificate.job.job_number }}</a> / Certificate {{ certificate.number }}</div>
-        <h1>Certificate {{ certificate.number }}</h1>
+        <!-- <h1>Certificate {{ certificate.number }}</h1> -->
+         <h1>Certificate {{ certificate.number }}
+            <span class="pill {% if certificate.is_approved %}pill-success{% elif certificate.is_pending_approval %}pill-warning{% else %}pill-neutral{% endif %}" style="vertical-align:middle;font-size:0.75rem;">{{ certificate.get_approval_status_display }}</span>
+        </h1>
         <p class="page-sub">
             Datasheet: <strong>{{ certificate.datasheet_number }}</strong>
         </p>
@@ -16,8 +19,19 @@
     <a class="btn secondary" href="{% url 'job_detail' certificate.job_id %}">&larr; Back to job</a>
 </div>
 
+{% if certificate.is_approved %}
+    <div class="card" style="border-color:#bfe3cc;background:var(--green-bg);color:var(--green);">
+        Approved{% if certificate.approved_by %} by <strong>{{ certificate.approved_by }}</strong>{% endif %}{% if certificate.approved_at %} on {{ certificate.approved_at|date:"d M Y, H:i" }}{% endif %}. This certificate is locked; you can now print and export it.
+    </div>
+{% elif certificate.is_pending_approval %}
+    <div class="card" style="border-color:#f3dfae;background:var(--amber-bg);color:var(--amber);">
+        {% if user.is_lab_head %}Review the details below, then approve it or return it to the technician.{% else %}Waiting for Lab Head approval. The certificate is locked until it is approved or returned.{% endif %}
+    </div>
+{% endif %}
+
 <form method="post">
     {% csrf_token %}
+    <fieldset {% if locked %}disabled{% endif %} style="border:0;margin:0;padding:0;min-width:0;">
 
     {% if cert_form.errors %}
         <div class="card" style="border-color:#f5c9c6;background:var(--red-bg);color:var(--red);">
@@ -289,7 +303,7 @@
         </div>
     </div>
 
-    <button type="submit" class="btn">Save Certificate</button>
+    <!-- <button type="submit" class="btn">Save Certificate</button>
 
     {% if certificate.calibration_date or certificate.results.exists %}
         <button
@@ -300,7 +314,28 @@
         >
             Print Certificate
         </button>
-    {% endif %}
+    {% endif %} -->
+    </fieldset>
+
+    <div style="display:flex;gap:0.6rem;flex-wrap:wrap;align-items:center;">
+        {% if not locked %}<button type="submit" class="btn">Save Certificate</button>{% endif %}
+
+        {% if user.is_technician and certificate.is_draft %}
+            <button type="submit" name="send_for_approval" value="1" class="btn secondary">Send for Approval</button>
+        {% endif %}
+
+        {% if user.is_lab_head and not certificate.is_approved %}
+            <button type="submit" name="approve" value="1" class="btn">Approve</button>
+            {% if certificate.is_pending_approval %}
+                <button type="submit" name="return_to_technician" value="1" class="btn secondary">Return to Technician</button>
+            {% endif %}
+        {% endif %}
+
+        {% if certificate.is_approved %}
+            <a class="btn secondary" href="{% url 'certificate_print' certificate.pk %}" target="_blank" rel="noopener">Print Certificate</a>
+            <a class="btn secondary" href="{% url 'export_certificate_excel' certificate.pk %}">Export to Excel</a>
+        {% endif %}
+    </div>
 
 </form>
 
