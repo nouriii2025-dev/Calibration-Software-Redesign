@@ -78,6 +78,7 @@
             <div>
                 <label>Ratio</label>
                 {{ cert_form.device_ratio }}
+                <!-- <small class="muted">Fraction (1/3) or decimal (0.5)</small> -->
             </div>
         </div>
         <p class="muted">Model / range come from the instrument line item: {{ certificate.line_item.model|default:"—" }} / {{ certificate.line_item.range|default:"—" }}</p>
@@ -521,6 +522,33 @@ document.addEventListener("DOMContentLoaded", function () {
         return Number.isFinite(number) ? number : NaN;
     }
 
+    // Ratio can be a fraction ("1/3") or a decimal ("0.5", "1.2")
+    function parseRatio(value) {
+        const text = String(value ?? "").replace(/\s+/g, "");
+
+        const match = text.match(
+            /^(\d+(?:\.\d+)?|\.\d+)(?:\/(\d+(?:\.\d+)?|\.\d+))?$/
+        );
+
+        if (!match) {
+            return NaN;
+        }
+
+        let number = Number(match[1]);
+
+        if (match[2] !== undefined) {
+            const denominator = Number(match[2]);
+
+            if (denominator === 0) {
+                return NaN;
+            }
+
+            number = number / denominator;
+        }
+
+        return number > 0 ? number : NaN;
+    }
+
     function format(value, decimals = 4) {
         if (!Number.isFinite(value)) {
             return "—";
@@ -575,7 +603,15 @@ document.addEventListener("DOMContentLoaded", function () {
             toNumber(resolutionInput?.value);
 
         const ratio =
-            toNumber(ratioInput?.value);
+            parseRatio(ratioInput?.value);
+
+        if (ratioInput) {
+            ratioInput.setCustomValidity(
+                ratioInput.value.trim() !== "" && !Number.isFinite(ratio)
+                    ? "Enter a positive fraction (e.g. 1/3) or decimal (e.g. 0.5)."
+                    : ""
+            );
+        }
 
         let assumedResolution = NaN;
 

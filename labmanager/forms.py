@@ -102,6 +102,7 @@ class JobLineItemForm(forms.ModelForm):
             "calibration_validity_value",
             "calibration_validity_unit",
             "reference_procedure",
+            "calibration_traceability",
         ]
 
         widgets = {
@@ -208,6 +209,16 @@ class CertificateForm(forms.ModelForm):
         disabled=True,
     )
 
+    device_ratio = forms.CharField(
+        label="Ratio",
+        required=False,
+        max_length=30,
+        widget=forms.TextInput(attrs={
+            "placeholder": "e.g. 1/3 or 0.5",
+            "autocomplete": "off",
+        }),
+    )
+
     uuc_unit = forms.ChoiceField(
         choices=[
             ("bar", "bar"),
@@ -270,6 +281,20 @@ class CertificateForm(forms.ModelForm):
                 attrs={"step": "any"}
             ),
         }
+
+    def clean_device_ratio(self):
+        value = (self.cleaned_data.get("device_ratio") or "").replace(" ", "")
+
+        if not value:
+            return None
+
+        if parse_ratio(value) is None:
+            raise ValidationError(
+                "Enter a positive fraction (e.g. 1/3) or decimal (e.g. 0.5)."
+            )
+
+        return value
+
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

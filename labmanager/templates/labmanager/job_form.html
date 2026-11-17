@@ -95,6 +95,7 @@
                     <th>Calibration Points</th>
                     <th>Calibration Validity</th>
                     <th>Reference Procedure</th>
+                    <th>Calibration Traceability</th>
                     <th></th>
                 </tr>
             </thead>
@@ -140,6 +141,10 @@
                         {% endfor %}
                     </td>
                     <td>{{ form.reference_procedure }}</td>
+                    <td style="min-width:240px;">
+                        {{ form.calibration_traceability }}
+                        {% for error in form.calibration_traceability.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+                    </td>
                     <td><button type="button" class="remove-row">✕</button></td>
                 </tr>
                 {% endfor %}
@@ -198,6 +203,7 @@
                 </div>
             </td>
             <td>{{ line_item_formset.empty_form.reference_procedure }}</td>
+            <td style="min-width:240px;">{{ line_item_formset.empty_form.calibration_traceability }}</td>
             <td><button type="button" class="remove-row">✕</button></td>
         </tr>
     </tbody>

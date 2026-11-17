@@ -3,7 +3,32 @@ from django.db import models
 from django.db.models import Max
 from django.utils import timezone
 from decimal import Decimal
+import re
 
+
+# Ratio accepts a fraction ("1/3", "1/4") or a decimal ("1.2", "0.5").
+_RATIO_PATTERN = re.compile(
+    r"^(\d+(?:\.\d+)?|\.\d+)(?:/(\d+(?:\.\d+)?|\.\d+))?$"
+)
+
+
+def parse_ratio(text):
+    if text is None:
+        return None
+
+    match = _RATIO_PATTERN.match(re.sub(r"\s+", "", str(text)))
+    if not match:
+        return None
+
+    value = Decimal(match.group(1))
+
+    if match.group(2) is not None:
+        denominator = Decimal(match.group(2))
+        if denominator == 0:
+            return None
+        value = value / denominator
+
+    return value if value > 0 else None
 
 class User(AbstractUser):
     """Custom user with a role. Lab Head has full access; Technician gets a
@@ -160,9 +185,8 @@ class Certificate(models.Model):
         blank=True,
     )
 
-    device_ratio = models.DecimalField(
-        max_digits=20,
-        decimal_places=2,
+    device_ratio = models.CharField(
+        max_length=30,
         null=True,
         blank=True,
     )
@@ -388,10 +412,17 @@ class Certificate(models.Model):
         if self.device_resolution is None:
             return None
 
-        if self.device_ratio is None:
+        ratio = self.device_ratio_value
+
+        if ratio is None:
             return None
 
-        return self.device_resolution * self.device_ratio
+        return self.device_resolution * ratio
+
+    @property
+    def device_ratio_value(self):
+        """Numeric value of device_ratio (handles fractions like 1/3)."""
+        return parse_ratio(self.device_ratio)
 
 
 class CalibrationResult(models.Model):
@@ -492,6 +523,11 @@ REFERENCE_PROCEDURE_CHOICES = [
     ("LCP/AAF/005", "LCP/AAF/005"),
 ]
 
+CALIBRATION_TRACEABILITY_CHOICES = [
+    ("Accredited as per ISO/IEC 17025:2017", "Accredited as per ISO/IEC 17025:2017"),
+    ("Non-accredited as per Lab Procedure", "Non-accredited as per Lab Procedure"),
+]
+
 UNIT_CHOICES = [
     ("bar", "bar"),
     ("psi", "psi"),
@@ -533,6 +569,12 @@ class JobLineItem(models.Model):
         blank=True,
     )
     reference_procedure = models.CharField(max_length=150, blank=True, choices=REFERENCE_PROCEDURE_CHOICES)
+    calibration_traceability = models.CharField(
+        max_length=150,
+        blank=True,
+        choices=CALIBRATION_TRACEABILITY_CHOICES,
+        verbose_name="Calibration Traceability",
+    )
 
     def __str__(self):
         return f"{self.instrument} x{self.quantity} ({self.job.job_number})"

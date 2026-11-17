@@ -39,7 +39,7 @@
         <thead>
             <tr>
                 <th>Instrument</th><th>Model</th><th>Range</th><th>Unit</th><th>Quantity</th><th>Certificates</th><th>Assigned To</th>
-                <th>Calibration Points</th><th>Calibration Validity</th><th>Reference Procedure</th>
+                <th>Calibration Points</th><th>Calibration Validity</th><th>Reference Procedure</th><th>Calibration Traceability</th>
 
             </tr>
         </thead>
@@ -62,14 +62,16 @@
                 <td>{{ li.calibration_points }}</td>
                 <td>{{ li.calibration_validity_value }} {{ li.calibration_validity_unit }}</td>
                 <td>{{ li.reference_procedure|default:"—" }}</td>
+                <td>{{ li.calibration_traceability|default:"—" }}</td>
             </tr>
             {% empty %}
-            <tr><td colspan="10" class="muted">No instruments added yet.</td></tr>
+            <tr><td colspan="11" class="muted">No instruments added yet.</td></tr>
             {% endfor %}
         </tbody>
     </table>
     </div>
 </div>
+
 
 <div class="card">
     <h2>Certificates</h2>
