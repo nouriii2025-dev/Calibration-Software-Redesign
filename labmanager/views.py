@@ -14,7 +14,6 @@ import calendar
 from .excel_export import export_certificate_to_excel
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
-from .reference_masters import REFERENCE_MASTERS
 
 
 def is_lab_head(user):
@@ -750,7 +749,6 @@ def certificate_detail(request, pk):
             "cert_form": cert_form,
             "result_formset": result_formset,
             "locked": locked,
-            "reference_masters": REFERENCE_MASTERS,
         },
     )
 
@@ -978,20 +976,6 @@ def calculate_uncertainty_for_result(
       before calculating Std. Un. for Press Tx.
     """
 
-    # m1 = result.upward_reading
-    # m2 = result.downward_reading
-    # applied = result.applied_value
-
-    # if (
-    #     m1 is None
-    #     or m2 is None
-    #     or applied is None
-    # ):
-    #     return None
-
-    # m1 = Decimal(str(m1))
-    # m2 = Decimal(str(m2))
-    # applied = Decimal(str(applied))
     m1 = result.upward_reading
     m2 = result.downward_reading
     applied = result.applied_value
@@ -1021,7 +1005,7 @@ def calculate_uncertainty_for_result(
     unit = certificate.uuc_unit or "bar"
     media = certificate.pressure_media or ""
 
-    reference_range_bar = certificate.reference_range_bar
+    reference_range_bar = certificate.reference_instrument_range
     full_scale = certificate.uuc_full_scale
 
     assumed_resolution = certificate.assumed_resolution

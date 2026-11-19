@@ -126,7 +126,6 @@
     </div>
 </div>
 
-    {{ reference_masters|json_script:"reference-masters-data" }}
     <div class="card">
         <h2>Working Standard</h2>
         <div class="row">
@@ -603,61 +602,7 @@ document.addEventListener("DOMContentLoaded", function () {
         document.querySelector('[name="pressure_media"]');
 
     const referenceRangeInput =
-        document.querySelector('[name="reference_instrument_range"]');
-
-    // Master list (Identification -> Working Standard details + range in bar)
-    const referenceMasters = {};
-    (function () {
-        const dataEl = document.getElementById('reference-masters-data');
-        if (!dataEl) return;
-        JSON.parse(dataEl.textContent).forEach(function (m) {
-            referenceMasters[m.identification] = m;
-        });
-    })();
-
-    // Numeric range (bar) for the selected identification.
-    // Older certificates that stored a plain number still work.
-    function getReferenceRangeBar() {
-        const value = referenceRangeInput?.value || "";
-        const master = referenceMasters[value];
-        if (master) {
-            return toNumber(master.range_bar);
-        }
-        return toNumber(value);
-    }
-
-    // ---- Reference Instrument Range -> Working Standard auto-fill ----
-    (function () {
-        const wsName =
-            document.querySelector('[name="working_standard_name"]');
-        const wsSerial =
-            document.querySelector('[name="working_standard_serial"]');
-        const wsCert =
-            document.querySelector('[name="working_standard_certificate_no"]');
-
-        if (!referenceRangeInput || !wsName || !wsSerial || !wsCert) return;
-
-        referenceRangeInput.addEventListener('change', function () {
-            const m = referenceMasters[referenceRangeInput.value];
-            if (m) {
-                wsName.value = m.name;
-                wsSerial.value = m.serial;
-                wsCert.value = m.cert;
-                [wsName, wsSerial, wsCert].forEach(function (el) {
-                    el.dispatchEvent(new Event('input', { bubbles: true }));
-                    el.dispatchEvent(new Event('change', { bubbles: true }));
-                });
-            }
-            // The range feeds the CMC / uncertainty, so recalculate rows.
-            document
-                .querySelectorAll("#results-body .result-row")
-                .forEach(function (row) {
-                    if (typeof calculateResultRow === "function") {
-                        calculateResultRow(row);
-                    }
-                });
-        });
-    })();
+        document.querySelector('input[name="reference_instrument_range"]');    
 
     function calculateAssumedResolution() {
 

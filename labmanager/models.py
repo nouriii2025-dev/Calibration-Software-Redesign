@@ -4,7 +4,6 @@ from django.db.models import Max
 from django.utils import timezone
 from decimal import Decimal, InvalidOperation
 import re
-from .reference_masters import REFERENCE_MASTER_BY_ID
 
 # Ratio accepts a fraction ("1/3", "1/4") or a decimal ("1.2", "0.5").
 _RATIO_PATTERN = re.compile(
@@ -191,10 +190,8 @@ class Certificate(models.Model):
         blank=True,
     )
 
-    reference_instrument_range = models.CharField(
-        max_length=100,
-        blank=True,
-        default="",
+    reference_instrument_range = models.DecimalField(
+        max_digits=20, decimal_places=2, null=True, blank=True,
     )
 
     uuc_full_scale = models.DecimalField(
@@ -441,25 +438,6 @@ class Certificate(models.Model):
             return None
 
         return value * factor
-
-    @property
-    def reference_range_bar(self):
-        """Numeric range (bar) for the selected identification.
-        Older certificates that stored a plain number still work."""
-        value = (self.reference_instrument_range or "").strip()
-        if not value:
-            return None
-
-        master = REFERENCE_MASTER_BY_ID.get(value)
-        if master is not None:
-            value = master.get("range_bar")
-            if value is None:
-                return None
-
-        try:
-            return Decimal(str(value))
-        except (InvalidOperation, ValueError, TypeError):
-            return None
 
 
     @property

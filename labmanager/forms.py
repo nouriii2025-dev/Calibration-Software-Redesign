@@ -5,10 +5,6 @@ from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
 from .models import *
 from decimal import Decimal
-from .reference_masters import (
-    REFERENCE_IDENTIFICATION_CHOICES,
-    REFERENCE_MASTER_BY_ID,
-)
 
 class SignUpForm(UserCreationForm):
     role = forms.ChoiceField(choices=User.Role.choices)
@@ -248,12 +244,6 @@ class CertificateForm(forms.ModelForm):
         widget=forms.TextInput(attrs={"readonly": "readonly"}),
     )
 
-    reference_instrument_range = forms.ChoiceField(
-        label="Reference Instrument Range",
-        choices=REFERENCE_IDENTIFICATION_CHOICES,
-        required=False,
-    )
-
     pressure_media = forms.ChoiceField(
         choices=[
             ("Pneumatic", "Pneumatic"),
@@ -309,6 +299,9 @@ class CertificateForm(forms.ModelForm):
             "lab_temperature_end": forms.NumberInput(
                 attrs={"step": "0.1", "placeholder": "End"}
             ),
+            "reference_instrument_range": forms.NumberInput(
+                attrs={"step": "any"}
+            ),
         }
 
     MAX_LAB_TEMPERATURE_DIFFERENCE = Decimal("1")
@@ -347,18 +340,6 @@ class CertificateForm(forms.ModelForm):
                 self.add_error("lab_temperature_start", message)
                 self.add_error("lab_temperature_end", message)
 
-        # A newly chosen identification always fills the Working Standard
-        # from the master list, so the three values can never mismatch.
-        ident = cleaned.get("reference_instrument_range") or ""
-        master = REFERENCE_MASTER_BY_ID.get(ident)
-        if master and ident != (self.instance.reference_instrument_range or ""):
-            cleaned["working_standard_name"] = master["name"]
-            cleaned["working_standard_serial"] = master["serial"]
-            cleaned["working_standard_certificate_no"] = master["cert"]
-            self.instance.working_standard_name = master["name"]
-            self.instance.working_standard_serial = master["serial"]
-            self.instance.working_standard_certificate_no = master["cert"]
-
         return cleaned
 
     def clean_device_ratio(self):
@@ -377,12 +358,6 @@ class CertificateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Older certificates stored a plain number here. Keep that value
-        # selectable so opening and re-saving them does not wipe it.
-        current = (getattr(self.instance, "reference_instrument_range", "") or "").strip()
-        if current and current not in REFERENCE_MASTER_BY_ID:
-            field = self.fields["reference_instrument_range"]
-            field.choices = list(field.choices) + [(current, current)]
 
         if self.instance and self.instance.pk:
             self.fields["certificate_number"].initial = self.instance.number
