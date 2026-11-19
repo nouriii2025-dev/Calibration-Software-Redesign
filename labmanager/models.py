@@ -2,9 +2,9 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.db.models import Max
 from django.utils import timezone
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import re
-
+from .reference_masters import REFERENCE_MASTER_BY_ID
 
 # Ratio accepts a fraction ("1/3", "1/4") or a decimal ("1.2", "0.5").
 _RATIO_PATTERN = re.compile(
@@ -191,11 +191,10 @@ class Certificate(models.Model):
         blank=True,
     )
 
-    reference_instrument_range = models.DecimalField(
-        max_digits=20,
-        decimal_places=2,
-        null=True,
+    reference_instrument_range = models.CharField(
+        max_length=100,
         blank=True,
+        default="",
     )
 
     uuc_full_scale = models.DecimalField(
@@ -221,7 +220,16 @@ class Certificate(models.Model):
     working_standard_certificate_no = models.CharField(max_length=100, blank=True)
 
     # --- Calibration conditions ---
+    lab_temperature_start = models.DecimalField(
+        max_digits=5, decimal_places=1, null=True, blank=True,
+        verbose_name="Lab Temperature (Start)",
+    )
+    lab_temperature_end = models.DecimalField(
+        max_digits=5, decimal_places=1, null=True, blank=True,
+        verbose_name="Lab Temperature (End)",
+    )
     lab_temperature = models.CharField(max_length=50, blank=True)
+
     lab_humidity = models.CharField(max_length=50, blank=True)
     ambient_pressure = models.CharField(max_length=50, blank=True)
     reference_procedure = models.CharField(max_length=150, blank=True)
@@ -358,7 +366,38 @@ class Certificate(models.Model):
             if self.line_item.unit:
                 self.uuc_unit = self.line_item.unit
 
+            if self.line_item.pressure_media and not self.is_approved:
+                self.pressure_media = self.line_item.pressure_media
+
+            # Lab temperature shown on the certificate = mean of Start and End.
+            if (
+                self.lab_temperature_start is not None
+                and self.lab_temperature_end is not None
+            ):
+                mean = (
+                    Decimal(self.lab_temperature_start)
+                    + Decimal(self.lab_temperature_end)
+                ) / Decimal("2")
+                self.lab_temperature = f"{mean:.2f}".rstrip("0").rstrip(".")
+
+                # Temperature difference = |End - Start| (read-only on the form).   
+                difference = abs(                                                   
+                    Decimal(self.lab_temperature_end)                                
+                    - Decimal(self.lab_temperature_start)                            
+                )                                                                    
+                self.temperature_variation = f"{difference:.1f}"
+
         super().save(*args, **kwargs)
+
+    @property
+    def lab_temperature_difference(self):
+        if (
+            self.lab_temperature_start is None
+            or self.lab_temperature_end is None
+        ):
+            return None
+        return abs(self.lab_temperature_end - self.lab_temperature_start)
+
 
     @property
     def is_complete(self):
@@ -402,6 +441,26 @@ class Certificate(models.Model):
             return None
 
         return value * factor
+
+    @property
+    def reference_range_bar(self):
+        """Numeric range (bar) for the selected identification.
+        Older certificates that stored a plain number still work."""
+        value = (self.reference_instrument_range or "").strip()
+        if not value:
+            return None
+
+        master = REFERENCE_MASTER_BY_ID.get(value)
+        if master is not None:
+            value = master.get("range_bar")
+            if value is None:
+                return None
+
+        try:
+            return Decimal(str(value))
+        except (InvalidOperation, ValueError, TypeError):
+            return None
+
 
     @property
     def assumed_resolution(self):
@@ -536,6 +595,11 @@ UNIT_CHOICES = [
     ("kg/cm2", "kg/cm2"),
 ]
 
+PRESSURE_MEDIA_CHOICES = [
+    ("Pneumatic", "Pneumatic"),
+    ("Hydraulic", "Hydraulic"),
+]
+
 CALIBRATION_VALIDITY_UNIT_CHOICES = [
     ("days", "Days"),
     ("months", "Months"),
@@ -574,6 +638,12 @@ class JobLineItem(models.Model):
         blank=True,
         choices=CALIBRATION_TRACEABILITY_CHOICES,
         verbose_name="Calibration Traceability",
+    )
+    pressure_media = models.CharField(
+        max_length=30,
+        blank=True,
+        choices=PRESSURE_MEDIA_CHOICES,
+        verbose_name="Pressure Media",
     )
 
     def __str__(self):
@@ -617,13 +687,22 @@ class JobLineItem(models.Model):
 
             cert.uuc_full_scale = self.range_to
             cert.uuc_unit = self.unit or ""
+            cert.pressure_media = self.pressure_media or ""
 
             cert.save(update_fields=[
                 "line_item",
                 "reference_procedure",
                 "uuc_full_scale",
                 "uuc_unit",
+                 "pressure_media", 
             ])
+
+    def sync_pressure_media(self):
+        """Push the Lab Head's selection to this line item's certificates.
+        Approved certificates are locked and left untouched."""
+        self.certificates.exclude(
+            approval_status=Certificate.ApprovalStatus.APPROVED
+        ).update(pressure_media=self.pressure_media or "")
 
     def sync_certificates(self):
         """
@@ -642,12 +721,14 @@ class JobLineItem(models.Model):
             cert.uuc_unit = (
                 self.unit or ""
             )
+            cert.pressure_media = (self.pressure_media or "")
 
             cert.save(
                 update_fields=[
                     "reference_procedure",
                     "uuc_full_scale",
                     "uuc_unit",
+                    "pressure_media",
                 ]
             )
 

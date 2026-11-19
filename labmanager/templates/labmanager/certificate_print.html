@@ -874,7 +874,8 @@
     <div class="conditions">
         <div class="band">Calibration Conditions</div>
         <div class="cond-ref">
-            Reference Procedure No. : {{ certificate.reference_procedure }}
+            <!-- Reference Procedure No. : {{ certificate.reference_procedure }} -->
+             Reference Procedure No. : {{ certificate.reference_procedure }}{% if certificate.pressure_media %} &nbsp;&nbsp;|&nbsp;&nbsp; Pressure Media : {{ certificate.pressure_media }}{% endif %}
         </div>
         <table class="cond-row">
             <tr>
@@ -884,7 +885,7 @@
             </tr>
         </table>
         <div class="cond-var">
-            Temperature variation during calibration did not exceed ±{{ certificate.temperature_variation|default:"±1 °C" }}°C
+            Temperature variation during calibration did not exceed ±{{ certificate.temperature_variation|default:"1" }}°C
         </div>
     </div>
 

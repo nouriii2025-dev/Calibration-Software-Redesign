@@ -1165,3 +1165,14 @@ label { display: block; font-size: 0.8rem; font-weight: 600; color: var(--muted)
 .notif-item small { color: var(--muted); font-weight: 400; font-size: 0.74rem; }
 .notif-empty { margin: 0; padding: 1.2rem 0.9rem; color: var(--muted); font-size: 0.85rem; text-align: center; }
 @media (max-width: 720px) { .notif-panel { position: fixed; left: 0.75rem; right: 0.75rem; top: 64px; width: auto; } }
+
+/* Lab temperature Start / End pair */
+.temp-range { display: flex; gap: 0.4rem; align-items: center; }
+.temp-range input { flex: 1 1 0; min-width: 0; }
+.temp-range span { color: var(--muted); font-size: 0.85rem; }
+input.temp-invalid, input.temp-invalid:focus {
+    border-color: var(--red) !important;
+    background: #fef2f2 !important;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.15);
+}
+.btn.is-blocked, a.is-blocked { opacity: 0.5; cursor: not-allowed; pointer-events: auto; }

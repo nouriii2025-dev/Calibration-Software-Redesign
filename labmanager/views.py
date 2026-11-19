@@ -14,6 +14,7 @@ import calendar
 from .excel_export import export_certificate_to_excel
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
+from .reference_masters import REFERENCE_MASTERS
 
 
 def is_lab_head(user):
@@ -340,6 +341,7 @@ def job_edit(request, pk):
                                     "reference_procedure",
                                     "uuc_full_scale",
                                     "uuc_unit",
+                                    "pressure_media",
                                 ]
                             )
 
@@ -351,6 +353,7 @@ def job_edit(request, pk):
                     job.line_items.all().order_by("id")
                 ):
                     line_item.assign_certificates()
+                    line_item.sync_pressure_media()
 
             messages.success(
                 request,
@@ -691,40 +694,14 @@ def certificate_detail(request, pk):
                     result_instance.mean_value = ""
                     result_instance.deviation = ""
 
-                # -----------------------------------------------------
-                # SAVE RESULT TO DATABASE
-                # -----------------------------------------------------
-
                 result_instance.save()
 
-            # =========================================================
-            # SAVE BUTTON ACTIONS
-            # =========================================================
-
-            # Calculate Uncertainty
             if "calculate_uncertainty" in request.POST:
                 return redirect(
                     "uncertainty",
                     pk=certificate.pk
                 )
-
-            # Save and Print
-            # if "save_and_print" in request.POST:
-            #     return redirect(
-            #         "certificate_print",
-            #         pk=certificate.pk
-            #     )
-
-            # # Normal Save
-            # messages.success(
-            #     request,
-            #     f"Certificate {certificate.number} updated."
-            # )
-
-            # return redirect(
-            #     "job_detail",
-            #     pk=certificate.job_id
-            # )
+            
             if "send_for_approval" in request.POST:
                 ok, text = certificate.submit_for_approval(request.user)
             elif "approve" in request.POST:
@@ -773,6 +750,7 @@ def certificate_detail(request, pk):
             "cert_form": cert_form,
             "result_formset": result_formset,
             "locked": locked,
+            "reference_masters": REFERENCE_MASTERS,
         },
     )
 
@@ -1043,7 +1021,7 @@ def calculate_uncertainty_for_result(
     unit = certificate.uuc_unit or "bar"
     media = certificate.pressure_media or ""
 
-    reference_range_bar = certificate.reference_instrument_range
+    reference_range_bar = certificate.reference_range_bar
     full_scale = certificate.uuc_full_scale
 
     assumed_resolution = certificate.assumed_resolution

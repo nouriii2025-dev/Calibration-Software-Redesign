@@ -96,6 +96,7 @@
                     <th>Calibration Validity</th>
                     <th>Reference Procedure</th>
                     <th>Calibration Traceability</th>
+                    <th>Pressure Media</th>
                     <th></th>
                 </tr>
             </thead>
@@ -144,6 +145,10 @@
                     <td style="min-width:240px;">
                         {{ form.calibration_traceability }}
                         {% for error in form.calibration_traceability.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
+                    </td>
+                    <td style="min-width:130px;">
+                        {{ form.pressure_media }}
+                        {% for error in form.pressure_media.errors %}<p class="form-error">{{ error }}</p>{% endfor %}
                     </td>
                     <td><button type="button" class="remove-row">✕</button></td>
                 </tr>
@@ -204,6 +209,7 @@
             </td>
             <td>{{ line_item_formset.empty_form.reference_procedure }}</td>
             <td style="min-width:240px;">{{ line_item_formset.empty_form.calibration_traceability }}</td>
+            <td style="min-width:130px;">{{ line_item_formset.empty_form.pressure_media }}</td>
             <td><button type="button" class="remove-row">✕</button></td>
         </tr>
     </tbody>

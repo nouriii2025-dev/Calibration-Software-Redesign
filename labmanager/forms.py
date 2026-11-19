@@ -4,7 +4,11 @@ from django.forms import inlineformset_factory
 from django.core.exceptions import ValidationError
 from django.forms import BaseInlineFormSet
 from .models import *
-
+from decimal import Decimal
+from .reference_masters import (
+    REFERENCE_IDENTIFICATION_CHOICES,
+    REFERENCE_MASTER_BY_ID,
+)
 
 class SignUpForm(UserCreationForm):
     role = forms.ChoiceField(choices=User.Role.choices)
@@ -103,6 +107,7 @@ class JobLineItemForm(forms.ModelForm):
             "calibration_validity_unit",
             "reference_procedure",
             "calibration_traceability",
+            "pressure_media",
         ]
 
         widgets = {
@@ -134,6 +139,11 @@ class JobLineItemForm(forms.ModelForm):
 
         self.fields["assigned_to"].queryset = (
             User.objects.filter(role=User.Role.TECHNICIAN)
+        )
+
+        self.fields["pressure_media"].required = True
+        self.fields["pressure_media"].choices = (
+            [("", "Select")] + list(PRESSURE_MEDIA_CHOICES)
         )
 
         for f in self.fields.values():
@@ -230,12 +240,27 @@ class CertificateForm(forms.ModelForm):
         required=False,
     )
 
+    # Read-only: calculated from Lab Temperature Start / End on save.
+    temperature_variation = forms.CharField(
+        label="Temperature Difference",
+        required=False,
+        disabled=True,
+        widget=forms.TextInput(attrs={"readonly": "readonly"}),
+    )
+
+    reference_instrument_range = forms.ChoiceField(
+        label="Reference Instrument Range",
+        choices=REFERENCE_IDENTIFICATION_CHOICES,
+        required=False,
+    )
+
     pressure_media = forms.ChoiceField(
         choices=[
             ("Pneumatic", "Pneumatic"),
             ("Hydraulic", "Hydraulic"),
         ],
         required=False,
+        disabled=True,
     )
 
     class Meta:
@@ -255,7 +280,8 @@ class CertificateForm(forms.ModelForm):
             "working_standard_name",
             "working_standard_serial",
             "working_standard_certificate_no",
-            "lab_temperature",
+            "lab_temperature_start",
+            "lab_temperature_end",
             "lab_humidity",
             "ambient_pressure",
             "reference_procedure",
@@ -274,13 +300,66 @@ class CertificateForm(forms.ModelForm):
             "calibration_date": forms.DateInput(attrs={"type": "date"}),
             "re_calibration_date" : forms.DateInput(attrs={"type": "date"}),
             "issue_date": forms.DateInput(attrs={"type": "date"}),
-            "reference_instrument_range": forms.NumberInput(
-                attrs={"step": "any"}
-            ),
             "uuc_full_scale": forms.NumberInput(
                 attrs={"step": "any"}
             ),
+            "lab_temperature_start": forms.NumberInput(
+                attrs={"step": "0.1", "placeholder": "Start"}
+            ),
+            "lab_temperature_end": forms.NumberInput(
+                attrs={"step": "0.1", "placeholder": "End"}
+            ),
         }
+
+    MAX_LAB_TEMPERATURE_DIFFERENCE = Decimal("1")
+
+    def clean(self):
+        cleaned = super().clean()
+
+        start = cleaned.get("lab_temperature_start")
+        end = cleaned.get("lab_temperature_end")
+
+        if (start is None) != (end is None):
+            missing = (
+                "lab_temperature_end" if end is None
+                else "lab_temperature_start"
+            )
+            if missing not in self.errors:
+                self.add_error(
+                    missing,
+                    "Enter both the Start and End lab temperature."
+                )
+        elif start is None and end is None:
+            # Both cleared: drop the derived mean too (only when it came
+            # from a previous Start/End pair, never a legacy value).
+            if (
+                self.initial.get("lab_temperature_start") is not None
+                or self.initial.get("lab_temperature_end") is not None
+            ):
+                self.instance.lab_temperature = ""
+                cleaned["temperature_variation"] = ""   
+        else:
+            if abs(end - start) > self.MAX_LAB_TEMPERATURE_DIFFERENCE:
+                message = (
+                    "Start and End lab temperature must be within ±1 °C "
+                    "of each other."
+                )
+                self.add_error("lab_temperature_start", message)
+                self.add_error("lab_temperature_end", message)
+
+        # A newly chosen identification always fills the Working Standard
+        # from the master list, so the three values can never mismatch.
+        ident = cleaned.get("reference_instrument_range") or ""
+        master = REFERENCE_MASTER_BY_ID.get(ident)
+        if master and ident != (self.instance.reference_instrument_range or ""):
+            cleaned["working_standard_name"] = master["name"]
+            cleaned["working_standard_serial"] = master["serial"]
+            cleaned["working_standard_certificate_no"] = master["cert"]
+            self.instance.working_standard_name = master["name"]
+            self.instance.working_standard_serial = master["serial"]
+            self.instance.working_standard_certificate_no = master["cert"]
+
+        return cleaned
 
     def clean_device_ratio(self):
         value = (self.cleaned_data.get("device_ratio") or "").replace(" ", "")
@@ -298,6 +377,12 @@ class CertificateForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Older certificates stored a plain number here. Keep that value
+        # selectable so opening and re-saving them does not wipe it.
+        current = (getattr(self.instance, "reference_instrument_range", "") or "").strip()
+        if current and current not in REFERENCE_MASTER_BY_ID:
+            field = self.fields["reference_instrument_range"]
+            field.choices = list(field.choices) + [(current, current)]
 
         if self.instance and self.instance.pk:
             self.fields["certificate_number"].initial = self.instance.number
